@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from services import llm_service
-from routes import auth, github, notion, certifications, graph, career, recruiter, chat, profile
+from routes import auth, github, notion, certifications, graph, career, recruiter, chat, profile, linkedin, user
 
 app = FastAPI(
     title="PathForge API",
@@ -30,6 +30,8 @@ app.include_router(career.router,         prefix="/career")
 app.include_router(recruiter.router,      prefix="/recruiter")
 app.include_router(chat.router,           prefix="/chat")
 app.include_router(profile.router,        prefix="/profile")
+app.include_router(linkedin.router,       prefix="/linkedin")
+app.include_router(user.router)
 
 
 @app.get("/")

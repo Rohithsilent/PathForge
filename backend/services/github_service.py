@@ -1,20 +1,28 @@
 import httpx
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from services.ai_service import extract_skills as ai_extract_skills
 from services.tech_directory import match_technologies, TECH_DIRECTORY
 from services.market_data import get_market_demand
+from config import settings
 
 
 GITHUB_API = "https://api.github.com"
 
 
+def _github_headers(token: str = "", accept: str = "") -> Dict[str, str]:
+    headers = {}
+    if accept:
+        headers["Accept"] = accept
+    active_token = (token or settings.github_token or "").strip()
+    if active_token:
+        headers["Authorization"] = f"token {active_token}"
+    return headers
+
+
 async def fetch_repos(access_token: str) -> List[Dict]:
     """Fetch user's repositories sorted by last updated (includes topics)."""
-    headers = {
-        "Authorization": f"token {access_token}",
-        "Accept": "application/vnd.github.mercy-preview+json",
-    }
+    headers = _github_headers(access_token, "application/vnd.github.mercy-preview+json")
     async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
         res = await client.get(
             f"{GITHUB_API}/user/repos?per_page=50&sort=updated",
@@ -32,10 +40,7 @@ async def fetch_repos(access_token: str) -> List[Dict]:
 
 async def fetch_readme(access_token: str, owner: str, repo: str) -> str:
     """Fetch raw README content (truncated to 3000 chars)."""
-    headers = {
-        "Authorization": f"token {access_token}",
-        "Accept": "application/vnd.github.raw",
-    }
+    headers = _github_headers(access_token, "application/vnd.github.raw")
     async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
         try:
             res = await client.get(
@@ -51,7 +56,7 @@ async def fetch_readme(access_token: str, owner: str, repo: str) -> str:
 
 async def fetch_languages(access_token: str, owner: str, repo: str) -> Dict:
     """Fetch language breakdown for a repo."""
-    headers = {"Authorization": f"token {access_token}"}
+    headers = _github_headers(access_token, "application/vnd.github.v3+json")
     async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
         try:
             res = await client.get(
@@ -63,6 +68,43 @@ async def fetch_languages(access_token: str, owner: str, repo: str) -> Dict:
         except Exception:
             pass
         return {}
+
+
+async def fetch_commit_count(token: str, owner: str, repo: str) -> int:
+    """Fetch approximate commit count for a repository via GitHub commits API."""
+    headers = _github_headers(token, "application/vnd.github.v3+json")
+    async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        try:
+            res = await client.get(
+                f"{GITHUB_API}/repos/{owner}/{repo}/commits?per_page=1",
+                headers=headers,
+            )
+            if res.status_code == 200:
+                link_header = res.headers.get("link", "")
+                if 'rel="last"' in link_header:
+                    import re
+                    match = re.search(r'[?&]page=(\d+)[^>]*>;\s*rel="last"', link_header)
+                    if match:
+                        return int(match.group(1))
+                data = res.json()
+                return len(data) if isinstance(data, list) else 0
+        except Exception:
+            pass
+    return 5
+
+
+def normalize_languages(languages_raw: Any) -> List[str]:
+    """Convert raw GitHub languages response into a list of language names sorted by usage."""
+    if isinstance(languages_raw, dict):
+        sorted_langs = sorted(
+            languages_raw.items(),
+            key=lambda item: item[1] if isinstance(item[1], (int, float)) else 0,
+            reverse=True,
+        )
+        return [lang for lang, _ in sorted_langs]
+    elif isinstance(languages_raw, list):
+        return [str(l) for l in languages_raw]
+    return []
 
 
 def _maturity_from_stars(stars: int) -> int:
@@ -267,3 +309,66 @@ async def sync_github_data(token: str) -> Dict[str, Any]:
 
     print(f"SYNC: done — {len(nodes)} nodes, {len(links)} links")
     return {"nodes": nodes, "links": links}
+
+
+async def fetch_user_profile(username: str, token: str = "") -> Dict:
+    """Fetch a GitHub user's public profile metadata."""
+    headers = _github_headers(token, "application/vnd.github+json")
+
+    async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
+        res = await client.get(f"{GITHUB_API}/users/{username}", headers=headers)
+
+    if res.status_code == 404:
+        raise ValueError(f"GitHub user '{username}' not found.")
+    if res.status_code == 401:
+        raise PermissionError("Invalid GitHub token.")
+    if res.status_code != 200:
+        raise RuntimeError(f"GitHub returned HTTP {res.status_code}")
+
+    data = res.json()
+    return {
+        "username": data.get("login", username),
+        "name": data.get("name", username),
+        "avatar": data.get("avatar_url", ""),
+        "bio": data.get("bio", ""),
+        "company": data.get("company", ""),
+        "location": data.get("location", ""),
+        "blog": data.get("blog", ""),
+        "twitter": data.get("twitter_username", ""),
+        "followers": data.get("followers", 0),
+        "following": data.get("following", 0),
+        "public_repos": data.get("public_repos", 0),
+        "public_gists": data.get("public_gists", 0),
+        "created_at": data.get("created_at", ""),
+        "html_url": data.get("html_url", f"https://github.com/{username}"),
+    }
+
+
+async def fetch_user_repos(username: str, token: str = "") -> List[Dict]:
+    """Fetch all public repos for a GitHub user (by username, no auth required)."""
+    headers = _github_headers(token, "application/vnd.github.mercy-preview+json")
+
+    all_repos: List[Dict] = []
+    page = 1
+    per_page = 50
+
+    async with httpx.AsyncClient(timeout=30, follow_redirects=True) as client:
+        while True:
+            res = await client.get(
+                f"{GITHUB_API}/users/{username}/repos",
+                headers=headers,
+                params={"per_page": per_page, "page": page, "sort": "updated"},
+            )
+            if res.status_code != 200:
+                break
+            batch = res.json()
+            if not batch:
+                break
+            all_repos.extend(batch)
+            if len(batch) < per_page:
+                break
+            page += 1
+            if len(all_repos) >= 100:  # hard cap
+                break
+
+    return all_repos

@@ -15,6 +15,7 @@ import { GeistSans } from "geist/font/sans"
 import { GeistMono } from "geist/font/mono"
 import { analyzeRepo } from "@/lib/api"
 import { useGraphStore } from "@/stores/graphStore"
+import { useAuthStore } from "@/stores/authStore"
 import DemoLoader from "@/components/layout/DemoLoader"
 import { ArrowRight, Sparkles, ChevronDown, GitBranch, Cpu, Route, BarChart3, TrendingUp, Layers, Loader2, Search } from "lucide-react"
 
@@ -286,6 +287,7 @@ function StepItem({
    ────────────────────────────────────────── */
 export default function LandingPage() {
     const router = useRouter()
+    const { user } = useAuthStore()
     const [isLoading, setIsLoading] = useState(true)
     const [repoUrl, setRepoUrl] = useState("")
     const [analyzing, setAnalyzing] = useState(false)
@@ -389,23 +391,82 @@ export default function LandingPage() {
                             PathForge
                         </span>
                     </div>
-                    <div className="hidden md:flex items-center gap-8">
+                    <div className="hidden md:flex items-center gap-6">
                         <a href="#features" className="text-[13px] font-medium text-slate-500 hover:text-slate-900 transition-colors">Why it helps</a>
                         <a href="#how-it-works" className="text-[13px] font-medium text-slate-500 hover:text-slate-900 transition-colors">How it Works</a>
-                        <button
-                            onClick={startDemo}
-                            className="text-[13px] font-bold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-lg transition-colors"
-                        >
-                            Try Demo
-                        </button>
+                        {user ? (
+                            <>
+                                <button
+                                    onClick={() => router.push("/profile")}
+                                    className="flex items-center gap-2 text-[13px] font-bold text-slate-700 hover:text-orange-600 px-3 py-1.5 rounded-xl border border-slate-200 bg-white shadow-2xs transition-colors"
+                                >
+                                    {user.avatar ? (
+                                        <img src={user.avatar} alt={user.name} className="w-5 h-5 rounded-full object-cover" />
+                                    ) : (
+                                        <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center font-bold">
+                                            {(user.name || "U")[0]}
+                                        </span>
+                                    )}
+                                    <span>{user.name?.split(" ")[0] || "Profile"}</span>
+                                </button>
+                                <button
+                                    onClick={() => router.push("/dashboard")}
+                                    className="text-[13px] font-bold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-lg transition-colors shadow-sm"
+                                >
+                                    Dashboard &rarr;
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => router.push("/login")}
+                                    className="text-[13px] font-bold text-slate-700 hover:text-orange-600 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    Sign In
+                                </button>
+                                <button
+                                    onClick={startDemo}
+                                    className="text-[13px] font-bold text-white bg-slate-900 hover:bg-slate-800 px-4 py-2 rounded-lg transition-colors shadow-sm"
+                                >
+                                    Try Demo
+                                </button>
+                            </>
+                        )}
                     </div>
                     {/* Mobile nav button */}
-                    <button
-                        onClick={startDemo}
-                        className="md:hidden text-[12px] font-bold text-white bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
-                    >
-                        Try Demo
-                    </button>
+                    <div className="md:hidden flex items-center gap-2">
+                        {user ? (
+                            <>
+                                <button
+                                    onClick={() => router.push("/profile")}
+                                    className="text-[12px] font-bold text-slate-700 hover:text-orange-600 px-2 py-1 transition-colors"
+                                >
+                                    {user.name?.split(" ")[0] || "Profile"}
+                                </button>
+                                <button
+                                    onClick={() => router.push("/dashboard")}
+                                    className="text-[12px] font-bold text-white bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    Dashboard
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={() => router.push("/login")}
+                                    className="text-[12px] font-bold text-slate-700 hover:text-orange-600 px-2 py-1 transition-colors"
+                                >
+                                    Sign In
+                                </button>
+                                <button
+                                    onClick={startDemo}
+                                    className="text-[12px] font-bold text-white bg-slate-900 hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    Try Demo
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </motion.nav>
 
@@ -543,6 +604,12 @@ export default function LandingPage() {
                             className="flex items-center gap-2 px-8 py-3 rounded-lg bg-gradient-to-r from-orange-500 to-orange-600 text-white font-bold text-[15px] hover:from-orange-600 hover:to-orange-700 transition-all shadow-md"
                         >
                             Explore the Live Demo
+                        </button>
+                        <button
+                            onClick={() => router.push("/login")}
+                            className="flex items-center gap-2 px-8 py-3 rounded-lg border-2 border-slate-200 bg-white text-slate-800 font-bold text-[15px] hover:border-orange-300 hover:text-orange-600 transition-all shadow-sm"
+                        >
+                            Sign In / Sign Up
                         </button>
                     </motion.div>
                 </div>

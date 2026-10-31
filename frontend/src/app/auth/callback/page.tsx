@@ -24,7 +24,10 @@ function AuthCallbackInner() {
                 name: user.name,
                 username: user.username,
                 avatar: user.avatar,
-                target_role: user.target_role
+                target_role: user.target_role,
+                auth_provider: "github",
+                github_username: user.username,
+                github_connected: true,
             })
             setIsDemo(false)
 
@@ -32,7 +35,7 @@ function AuthCallbackInner() {
             await syncGithubGraph(user.github_token || access_token)
 
             setStatus("Redirecting...")
-            router.push("/dashboard")
+            router.push("/setup")
         } catch (err: any) {
             console.error("Login failed", err)
             const msg = err.response?.data?.detail || err.message || "Unknown error"

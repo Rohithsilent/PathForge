@@ -10,6 +10,8 @@ __pycache__/
 .env.local
 .env.*.local
 backend/.env
+*serviceAccountKey*.json
+backend/serviceAccountKey.json
 
 # Build output
 .next/

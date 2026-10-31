@@ -15,7 +15,9 @@ import CopilotPanel from "@/components/panels/CopilotPanel"
 import RoadmapPanel from "@/components/panels/RoadmapPanel"
 import SearchFilter from "@/components/panels/SearchFilter"
 import PanelSkeleton from "@/components/ui/PanelSkeleton"
+import GraphFilters from "@/components/graph/GraphFilters"
 import { motion, AnimatePresence } from "framer-motion"
+import { Github, Linkedin, ExternalLink, Users, BookOpen } from "lucide-react"
 
 // Dynamic import — 3d-force-graph cannot run on server
 const KnowledgeGraph3D = dynamic(
@@ -36,9 +38,9 @@ const KnowledgeGraph3D = dynamic(
 function DashboardContent() {
     const searchParams = useSearchParams()
     const isDemo = searchParams.get("demo") === "true"
-    const { setGraphData, graphData, showInsights, marketOverlay, recruiterMode, copilotMode, roadmapMode } = useGraphStore()
+    const { setGraphData, graphData, showInsights, marketOverlay, recruiterMode, copilotMode, roadmapMode, activeRepos, filterSource } = useGraphStore()
     const { setCurrentScore, setGaps, setTargetRole } = useSkillStore()
-    const { setUser, setIsDemo } = useAuthStore()
+    const { setUser, setIsDemo, user, githubProfile } = useAuthStore()
 
     const [panelLoading, setPanelLoading] = useState(false)
     const [isHydrated, setIsHydrated] = useState(false)
@@ -137,6 +139,48 @@ function DashboardContent() {
             <div className="flex flex-1 overflow-hidden px-4 md:px-8 pb-4 md:pb-8 gap-4 md:gap-6 relative">
                 {/* Graph column — backend warning banner + 3D graph */}
                 <div className="flex-1 flex flex-col gap-2 min-w-0 min-h-0">
+                    {/* GitHub Profile Banner */}
+                    {githubProfile && (
+                        <motion.div
+                            initial={{ opacity: 0, y: -8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex items-center gap-3 px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-white shadow-sm shrink-0 overflow-hidden"
+                        >
+                            <img
+                                src={githubProfile.avatar}
+                                alt={githubProfile.username}
+                                className="w-7 h-7 rounded-full border border-slate-600 shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-white truncate">{githubProfile.username}</p>
+                                {githubProfile.bio && (
+                                    <p className="text-[10px] text-slate-400 truncate">{githubProfile.bio}</p>
+                                )}
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                                <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                                    <BookOpen className="w-3 h-3" />{githubProfile.public_repos} repos
+                                </span>
+                                <span className="flex items-center gap-1 text-[10px] text-slate-400">
+                                    <Users className="w-3 h-3" />{githubProfile.followers}
+                                </span>
+                                <a
+                                    href={githubProfile.html_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-slate-500 hover:text-white transition"
+                                >
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* Graph Filters Bar */}
+                    <div className="shrink-0">
+                        <GraphFilters />
+                    </div>
+
                     {backendDown && (
                         <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 shadow-sm shrink-0">
                             <div className="flex items-center gap-2 min-w-0">

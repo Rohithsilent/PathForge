@@ -8,6 +8,8 @@ interface GraphNode {
     market_demand: number
     val: number
     source: string
+    repo?: string      // which repo this node belongs to (if from github)
+    repos?: string[]   // multiple repos (if skill appears in several)
 }
 
 interface GraphLink {
@@ -18,12 +20,15 @@ interface GraphLink {
 }
 
 export type AnalysisEngine = 'ollama' | 'openrouter'
+export type FilterSource = 'all' | 'github' | 'linkedin'
 
 interface GraphState {
     graphData: { nodes: GraphNode[]; links: GraphLink[] }
     selectedNode: GraphNode | null
     searchTerm: string
     filterCategory: string
+    filterSource: FilterSource       // filter by data source
+    activeRepos: Set<string>         // empty = show all repos
     marketOverlay: boolean
     recruiterMode: boolean
     showInsights: boolean
@@ -34,6 +39,10 @@ interface GraphState {
     setSelectedNode: (node: GraphNode | null) => void
     setSearchTerm: (term: string) => void
     setFilterCategory: (cat: string) => void
+    setFilterSource: (source: FilterSource) => void
+    toggleRepo: (repoName: string) => void
+    setActiveRepos: (repos: Set<string>) => void
+    clearRepoFilter: () => void
     toggleMarketOverlay: () => void
     toggleRecruiterMode: () => void
     toggleInsights: () => void
@@ -47,6 +56,8 @@ export const useGraphStore = create<GraphState>((set) => ({
     selectedNode: null,
     searchTerm: '',
     filterCategory: 'all',
+    filterSource: 'all',
+    activeRepos: new Set<string>(),
     marketOverlay: false,
     recruiterMode: false,
     showInsights: true,
@@ -57,6 +68,15 @@ export const useGraphStore = create<GraphState>((set) => ({
     setSelectedNode: (node) => set({ selectedNode: node }),
     setSearchTerm: (term) => set({ searchTerm: term }),
     setFilterCategory: (cat) => set({ filterCategory: cat }),
+    setFilterSource: (source) => set({ filterSource: source }),
+    toggleRepo: (repoName) => set((s) => {
+        const next = new Set(s.activeRepos)
+        if (next.has(repoName)) next.delete(repoName)
+        else next.add(repoName)
+        return { activeRepos: next }
+    }),
+    setActiveRepos: (repos) => set({ activeRepos: repos }),
+    clearRepoFilter: () => set({ activeRepos: new Set<string>() }),
     toggleMarketOverlay: () => set((s) => s.marketOverlay
         ? { marketOverlay: false }
         : { marketOverlay: true, showInsights: false, recruiterMode: false, copilotMode: false, roadmapMode: false }),
@@ -74,3 +94,7 @@ export const useGraphStore = create<GraphState>((set) => ({
         : { roadmapMode: true, showInsights: false, marketOverlay: false, recruiterMode: false, copilotMode: false }),
     setAnalysisEngine: (engine) => set({ analysisEngine: engine }),
 }))
+
+if (typeof window !== 'undefined') {
+    (window as any).useGraphStore = useGraphStore
+}

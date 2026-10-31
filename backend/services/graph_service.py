@@ -1,10 +1,40 @@
 from typing import Dict, List
+import os
+import json
 
 from config import settings
 
 
 # In-memory fallback for demo mode (when Neo4j is not configured)
 _graph_store: Dict = {"nodes": [], "links": []}
+GRAPH_FILE = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "active_graph.json")
+
+
+def _persist_local_graph():
+    try:
+        os.makedirs(os.path.dirname(GRAPH_FILE), exist_ok=True)
+        with open(GRAPH_FILE, "w", encoding="utf-8") as f:
+            json.dump(_graph_store, f)
+    except Exception as e:
+        print(f"Error persisting graph to {GRAPH_FILE}: {e}")
+
+
+def _load_local_graph():
+    global _graph_store
+    if os.path.isfile(GRAPH_FILE):
+        try:
+            with open(GRAPH_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                _graph_store = {
+                    "nodes": data.get("nodes", []),
+                    "links": data.get("links", []),
+                }
+        except Exception as e:
+            print(f"Error loading graph from {GRAPH_FILE}: {e}")
+
+
+# Pre-load on import if file exists
+_load_local_graph()
 
 
 def get_driver():
@@ -22,11 +52,12 @@ def get_driver():
 
 
 def save_graph(nodes: List[Dict], links: List[Dict]):
-    """Save graph data to Neo4j or in-memory store."""
+    """Save graph data to Neo4j or in-memory store and file."""
     driver = get_driver()
     if driver is None:
         _graph_store["nodes"] = nodes
         _graph_store["links"] = links
+        _persist_local_graph()
         return
 
     with driver.session() as session:
@@ -73,6 +104,8 @@ def get_graph() -> Dict:
     """Retrieve full graph data from Neo4j or in-memory store."""
     driver = get_driver()
     if driver is None:
+        if not _graph_store.get("nodes"):
+            _load_local_graph()
         return _graph_store
 
     with driver.session() as session:
@@ -99,6 +132,7 @@ def add_node(node: Dict):
     driver = get_driver()
     if driver is None:
         _graph_store["nodes"].append(node)
+        _persist_local_graph()
         return
 
     with driver.session() as session:
@@ -121,6 +155,7 @@ def add_link(link: Dict):
     driver = get_driver()
     if driver is None:
         _graph_store["links"].append(link)
+        _persist_local_graph()
         return
 
     rel_type = link.get("type", "RELATED_TO")
@@ -149,6 +184,7 @@ def add_nodes_and_links(nodes: List[Dict], links: List[Dict]):
                 _graph_store["nodes"].append(node)
                 existing_ids.add(node["id"])
         _graph_store["links"].extend(links)
+        _persist_local_graph()
         return
 
     with driver.session() as session:

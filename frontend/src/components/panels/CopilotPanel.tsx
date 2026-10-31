@@ -100,7 +100,7 @@ export default function CopilotPanel() {
                             <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-orange-100 to-amber-50 flex items-center justify-center">
                                 <span className="text-2xl">🤖</span>
                             </div>
-                            <p className="text-sm font-bold text-slate-900 mb-1">Hey! I'm your AI career coach.</p>
+                            <p className="text-sm font-bold text-slate-900 mb-1">Hey! I&apos;m your AI career coach.</p>
                             <p className="text-xs text-slate-500 leading-relaxed max-w-[260px] mx-auto">
                                 I can see your real skills from your analyzed repos. Ask me anything or try a quick prompt:
                             </p>

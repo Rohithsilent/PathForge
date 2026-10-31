@@ -72,7 +72,7 @@ export default function PublicProfilePage() {
                 <div className="text-center max-w-sm px-6">
                     <div className="text-5xl mb-4">🔭</div>
                     <h1 className="text-xl font-bold text-slate-900 mb-2">Profile Not Found</h1>
-                    <p className="text-sm text-slate-500 mb-6">This profile link may have expired or doesn't exist.</p>
+                    <p className="text-sm text-slate-500 mb-6">This profile link may have expired or doesn&apos;t exist.</p>
                     <a href="/" className="inline-block px-6 py-3 bg-[#F97316] text-white font-bold rounded-xl text-sm hover:bg-orange-600 transition-colors">
                         Analyze your GitHub →
                     </a>

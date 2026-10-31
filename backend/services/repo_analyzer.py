@@ -335,6 +335,8 @@ async def analyze_public_repo(
         "maturity": _maturity_from_stars(stars),
         "market_demand": min(100, 50 + stars * 2 + forks * 3),
         "source": "github",
+        "repo": repo_name,
+        "repos": [repo_name],
         "val": max(4, min(15, 4 + stars * 0.5)),
     })
 
@@ -537,6 +539,8 @@ async def analyze_public_repo(
             "maturity": maturity,
             "market_demand": get_market_demand(info["name"]),
             "source": "github",
+            "repo": repo_name,
+            "repos": [repo_name],
             "val": max(4, maturity / 10),
         })
 

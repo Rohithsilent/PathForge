@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     jwt_secret: str = "changeme"
     demo_mode: bool = False
 
+    # Firebase
+    firebase_credentials_path: str = ""  # path to serviceAccountKey.json
+    # If empty, Firebase token verification is skipped (dev mode)
+
     class Config:
         env_file = ".env"
         extra = "ignore"

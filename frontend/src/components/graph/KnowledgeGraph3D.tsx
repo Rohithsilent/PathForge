@@ -5,6 +5,7 @@ import { Billboard, Text, Line, OrbitControls } from "@react-three/drei"
 import { useGraphStore } from "@/stores/graphStore"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 import { getCategoryGlyph, getTechIcon } from "@/lib/tech-metadata"
+import { X } from "lucide-react"
 import * as THREE from "three"
 import {
     forceSimulation,
@@ -488,7 +489,7 @@ function MarketDemandBadge({
 }
 
 // ─── Graph Link (line between two nodes) ───
-function GraphLink({ link }: { link: SimLink }) {
+function GraphLink({ link, isHighlighted }: { link: SimLink; isHighlighted?: boolean }) {
     const ref = useRef<any>(null)
     const source = link.source as SimNode
     const target = link.target as SimNode
@@ -515,19 +516,19 @@ function GraphLink({ link }: { link: SimLink }) {
         <>
             <Line
                 points={points}
-                color="#CBD5E1"
-                lineWidth={1}
+                color={isHighlighted ? "#F97316" : "#CBD5E1"}
+                lineWidth={isHighlighted ? 2 : 1}
                 transparent
-                opacity={0.6}
+                opacity={isHighlighted ? 0.95 : 0.6}
             />
             {linkLabel && (
                 <Billboard position={midpoint}>
                     <Text
-                        fontSize={0.8}
-                        color="#64748B"
+                        fontSize={isHighlighted ? 1.0 : 0.8}
+                        color={isHighlighted ? "#EA580C" : "#64748B"}
                         anchorX="center"
                         anchorY="middle"
-                        outlineWidth={0.05}
+                        outlineWidth={0.06}
                         outlineColor="#FAFAFA"
                     >
                         {linkLabel}
@@ -540,7 +541,15 @@ function GraphLink({ link }: { link: SimLink }) {
 
 // ─── Scene (runs force simulation + renders nodes/links) ───
 function GraphScene() {
-    const { graphData, setSelectedNode, selectedNode, searchTerm, filterCategory } = useGraphStore()
+    const {
+        graphData,
+        setSelectedNode,
+        selectedNode,
+        searchTerm,
+        filterCategory,
+        filterSource,
+        activeRepos,
+    } = useGraphStore()
     const [simNodes, setSimNodes] = useState<SimNode[]>([])
     const [simLinks, setSimLinks] = useState<SimLink[]>([])
     const simRef = useRef<any>(null)
@@ -587,18 +596,122 @@ function GraphScene() {
         }
     }, [graphData])
 
+    // Resolve which node IDs belong to activeRepos (via direct property OR link connection)
+    const activeRepoNodeIds = useMemo(() => {
+        if (!activeRepos || activeRepos.size === 0) return null
+        const ids = new Set<string>()
+
+        // 1. All repo nodes matching activeRepos
+        const matchingRepoNodes = graphData.nodes.filter(
+            (n) => n.category === "repo" && activeRepos.has(n.name)
+        )
+        const repoNodeIds = new Set(matchingRepoNodes.map((n) => n.id))
+        repoNodeIds.forEach((id) => ids.add(id))
+
+        // 2. Direct property matches
+        graphData.nodes.forEach((n) => {
+            if (n.repo && activeRepos.has(n.repo)) ids.add(n.id)
+            if (Array.isArray(n.repos) && n.repos.some((r: string) => activeRepos.has(r))) ids.add(n.id)
+        })
+
+        // 3. Link matches (nodes connected to active repo nodes)
+        if (graphData.links) {
+            graphData.links.forEach((l: any) => {
+                const src = typeof l.source === "string" ? l.source : l.source?.id
+                const tgt = typeof l.target === "string" ? l.target : l.target?.id
+                if (src && repoNodeIds.has(src) && tgt) ids.add(tgt)
+                if (tgt && repoNodeIds.has(tgt) && src) ids.add(src)
+            })
+        }
+
+        return ids
+    }, [graphData, activeRepos])
+
+    // Nodes connected to the selectedNode (if one is selected)
+    const connectedNodeIds = useMemo(() => {
+        if (!selectedNode) return null
+        const ids = new Set<string>()
+        ids.add(selectedNode.id)
+        if (selectedNode.name) ids.add(selectedNode.name)
+
+        // 1. Scan links in simLinks and graphData.links
+        const linksToScan = simLinks.length > 0 ? simLinks : (graphData.links || [])
+        linksToScan.forEach((l: any) => {
+            const srcId = typeof l.source === "string" ? l.source : l.source?.id
+            const tgtId = typeof l.target === "string" ? l.target : l.target?.id
+            const isSrcMatch = srcId === selectedNode.id || srcId === selectedNode.name
+            const isTgtMatch = tgtId === selectedNode.id || tgtId === selectedNode.name
+            if (isSrcMatch && tgtId) ids.add(tgtId)
+            if (isTgtMatch && srcId) ids.add(srcId)
+        })
+
+        if (graphData.links) {
+            graphData.links.forEach((l: any) => {
+                const srcId = typeof l.source === "string" ? l.source : l.source?.id
+                const tgtId = typeof l.target === "string" ? l.target : l.target?.id
+                const isSrcMatch = srcId === selectedNode.id || srcId === selectedNode.name
+                const isTgtMatch = tgtId === selectedNode.id || tgtId === selectedNode.name
+                if (isSrcMatch && tgtId) ids.add(tgtId)
+                if (isTgtMatch && srcId) ids.add(srcId)
+            })
+        }
+
+        // 2. Repo associations
+        if (selectedNode.category === "repo") {
+            graphData.nodes.forEach((n) => {
+                if (n.repo === selectedNode.name || (Array.isArray(n.repos) && n.repos.includes(selectedNode.name))) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            })
+        }
+        if (selectedNode.repo) {
+            graphData.nodes.forEach((n) => {
+                if (n.category === "repo" && n.name === selectedNode.repo) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            })
+        }
+        if (Array.isArray(selectedNode.repos)) {
+            graphData.nodes.forEach((n) => {
+                if (n.category === "repo" && selectedNode.repos!.includes(n.name)) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            })
+        }
+
+        return ids
+    }, [selectedNode, simLinks, graphData])
+
     // Filter nodes
     const visibleNodes = useMemo(() => {
-        return simNodes.filter((node) => {
+        return simNodes.filter((node: any) => {
+            // When a node is selected, ONLY show the selected node and the nodes directly connected to it!
+            if (connectedNodeIds) {
+                return connectedNodeIds.has(node.id) || connectedNodeIds.has(node.name)
+            }
+
             const matchesSearch =
                 !searchTerm || node.name.toLowerCase().includes(searchTerm.toLowerCase())
-            const matchesFilter =
+            const matchesCategory =
                 !filterCategory || filterCategory === "all" || node.category === filterCategory
-            return matchesSearch && matchesFilter
-        })
-    }, [simNodes, searchTerm, filterCategory])
 
-    const visibleIds = new Set(visibleNodes.map((n) => n.id))
+            // Source filter ('all' | 'github' | 'linkedin')
+            const nodeSource = node.source || "github"
+            const matchesSource =
+                !filterSource || filterSource === "all" || nodeSource === filterSource
+
+            // Repo filter: if activeRepos is set, node must match active repos
+            const matchesRepo =
+                !activeRepoNodeIds || activeRepoNodeIds.has(node.id)
+
+            return matchesSearch && matchesCategory && matchesSource && matchesRepo
+        })
+    }, [simNodes, connectedNodeIds, searchTerm, filterCategory, filterSource, activeRepoNodeIds])
+
+    const visibleIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes])
 
     const visibleLinks = useMemo(() => {
         return simLinks.filter((l) => {
@@ -613,16 +726,30 @@ function GraphScene() {
             <ambientLight intensity={1.5} />
             <pointLight position={[50, 50, 50]} intensity={0.5} />
 
-            {visibleLinks.map((link, i) => (
-                <GraphLink key={i} link={link} />
-            ))}
+            {visibleLinks.map((link, i) => {
+                const srcId = typeof link.source === "string" ? link.source : link.source?.id
+                const tgtId = typeof link.target === "string" ? link.target : link.target?.id
+                const isHighlighted = selectedNode && (
+                    srcId === selectedNode.id || srcId === selectedNode.name ||
+                    tgtId === selectedNode.id || tgtId === selectedNode.name
+                )
+                return (
+                    <GraphLink key={i} link={link} isHighlighted={!!isHighlighted} />
+                )
+            })}
 
             {visibleNodes.map((node) => (
                 <GraphNode
                     key={node.id}
                     node={node}
                     isSelected={selectedNode?.id === node.id}
-                    onClick={() => setSelectedNode(node as any)}
+                    onClick={() => {
+                        if (selectedNode?.id === node.id) {
+                            setSelectedNode(null)
+                        } else {
+                            setSelectedNode(node as any)
+                        }
+                    }}
                 />
             ))}
         </>
@@ -656,17 +783,109 @@ class WebGLErrorBoundary extends Component<
 }
 
 function WebGLFallbackView() {
-    const { graphData, selectedNode, setSelectedNode, searchTerm, filterCategory } = useGraphStore()
+    const {
+        graphData,
+        selectedNode,
+        setSelectedNode,
+        searchTerm,
+        filterCategory,
+        filterSource,
+        activeRepos,
+    } = useGraphStore()
+
+    const activeRepoNodeIds = useMemo(() => {
+        if (!activeRepos || activeRepos.size === 0) return null
+        const ids = new Set<string>()
+
+        const matchingRepoNodes = graphData.nodes.filter(
+            (n) => n.category === "repo" && activeRepos.has(n.name)
+        )
+        const repoNodeIds = new Set(matchingRepoNodes.map((n) => n.id))
+        repoNodeIds.forEach((id) => ids.add(id))
+
+        graphData.nodes.forEach((n) => {
+            if (n.repo && activeRepos.has(n.repo)) ids.add(n.id)
+            if (Array.isArray(n.repos) && n.repos.some((r: string) => activeRepos.has(r))) ids.add(n.id)
+        })
+
+        if (graphData.links) {
+            graphData.links.forEach((l: any) => {
+                const src = typeof l.source === "string" ? l.source : l.source?.id
+                const tgt = typeof l.target === "string" ? l.target : l.target?.id
+                if (src && repoNodeIds.has(src) && tgt) ids.add(tgt)
+                if (tgt && repoNodeIds.has(tgt) && src) ids.add(src)
+            })
+        }
+
+        return ids
+    }, [graphData, activeRepos])
+
+    const connectedNodeIds = useMemo(() => {
+        if (!selectedNode) return null
+        const ids = new Set<string>()
+        ids.add(selectedNode.id)
+        if (selectedNode.name) ids.add(selectedNode.name)
+
+        if (graphData.links) {
+            graphData.links.forEach((l: any) => {
+                const srcId = typeof l.source === "string" ? l.source : l.source?.id
+                const tgtId = typeof l.target === "string" ? l.target : l.target?.id
+                const isSrcMatch = srcId === selectedNode.id || srcId === selectedNode.name
+                const isTgtMatch = tgtId === selectedNode.id || tgtId === selectedNode.name
+                if (isSrcMatch && tgtId) ids.add(tgtId)
+                if (isTgtMatch && srcId) ids.add(srcId)
+            })
+        }
+
+        if (selectedNode.category === "repo") {
+            graphData.nodes.forEach((n) => {
+                if (n.repo === selectedNode.name || (Array.isArray(n.repos) && n.repos.includes(selectedNode.name))) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            })
+        }
+        if (selectedNode.repo) {
+            graphData.nodes.forEach((n) => {
+                if (n.category === "repo" && n.name === selectedNode.repo) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            })
+        }
+        if (Array.isArray(selectedNode.repos)) {
+            graphData.nodes.forEach((n) => {
+                if (n.category === "repo" && selectedNode.repos!.includes(n.name)) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            })
+        }
+
+        return ids
+    }, [selectedNode, graphData])
 
     const visibleNodes = useMemo(() => {
-        return graphData.nodes.filter((node) => {
+        return graphData.nodes.filter((node: any) => {
+            if (connectedNodeIds) {
+                return connectedNodeIds.has(node.id) || connectedNodeIds.has(node.name)
+            }
+
             const matchesSearch =
                 !searchTerm || node.name.toLowerCase().includes(searchTerm.toLowerCase())
-            const matchesFilter =
+            const matchesCategory =
                 !filterCategory || filterCategory === "all" || node.category === filterCategory
-            return matchesSearch && matchesFilter
+
+            const nodeSource = node.source || "github"
+            const matchesSource =
+                !filterSource || filterSource === "all" || nodeSource === filterSource
+
+            const matchesRepo =
+                !activeRepoNodeIds || activeRepoNodeIds.has(node.id)
+
+            return matchesSearch && matchesCategory && matchesSource && matchesRepo
         })
-    }, [graphData.nodes, searchTerm, filterCategory])
+    }, [graphData.nodes, connectedNodeIds, searchTerm, filterCategory, filterSource, activeRepoNodeIds])
 
     return (
         <div className="w-full h-full p-4 md:p-6 overflow-y-auto flex flex-col gap-4 bg-[#F8F9FA]">
@@ -690,7 +909,13 @@ function WebGLFallbackView() {
                     return (
                         <button
                             key={node.id}
-                            onClick={() => setSelectedNode(node as any)}
+                            onClick={() => {
+                                if (selectedNode?.id === node.id) {
+                                    setSelectedNode(null)
+                                } else {
+                                    setSelectedNode(node as any)
+                                }
+                            }}
                             className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
                                 isSelected
                                     ? "bg-slate-900 border-slate-900 text-white shadow-md scale-[1.02]"
@@ -733,6 +958,9 @@ function WebGLFallbackView() {
 // ─── Main Component (exported, wrapped in R3F Canvas) ───
 export default function KnowledgeGraph3D() {
     const marketOverlay = useGraphStore((state) => state.marketOverlay)
+    const selectedNode = useGraphStore((state) => state.selectedNode)
+    const setSelectedNode = useGraphStore((state) => state.setSelectedNode)
+    const pointerDownPos = useRef({ x: 0, y: 0 })
     const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
 
     useEffect(() => {
@@ -761,6 +989,16 @@ export default function KnowledgeGraph3D() {
                 <Canvas
                     shadows={false}
                     camera={{ position: [0, 0, 250], fov: 45 }}
+                    onPointerDown={(e) => {
+                        pointerDownPos.current = { x: e.clientX, y: e.clientY }
+                    }}
+                    onPointerMissed={(e) => {
+                        const dx = Math.abs(e.clientX - pointerDownPos.current.x)
+                        const dy = Math.abs(e.clientY - pointerDownPos.current.y)
+                        if (dx < 6 && dy < 6) {
+                            setSelectedNode(null)
+                        }
+                    }}
                     gl={{
                         antialias: true,
                         alpha: true,
@@ -783,9 +1021,35 @@ export default function KnowledgeGraph3D() {
                     />
                 </Canvas>
 
-            {/* Market demand legend (HTML overlay, must not swallow OrbitControls) */}
-            {marketOverlay && (
-                <div className="pointer-events-none absolute right-3 top-3 z-10 select-none sm:right-4 sm:top-4">
+                {/* Focused Node Badge (shown when a node is selected and isolating connected nodes) */}
+                {selectedNode && (
+                    <div className="absolute top-3 right-3 sm:right-4 z-20 flex items-center gap-2.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-orange-200/90 shadow-md rounded-xl text-xs text-slate-800 transition-all pointer-events-auto">
+                        <span
+                            className="w-2.5 h-2.5 rounded-full shrink-0 shadow-2xs"
+                            style={{ backgroundColor: CATEGORY_COLORS[selectedNode.category] || "#F97316" }}
+                        />
+                        <div className="flex flex-col min-w-0">
+                            <span className="text-[9px] text-orange-600 font-bold uppercase tracking-wider">
+                                Focused Node
+                            </span>
+                            <span className="font-bold text-slate-900 truncate max-w-[120px] sm:max-w-[180px]">
+                                {selectedNode.name}
+                            </span>
+                        </div>
+                        <button
+                            onClick={() => setSelectedNode(null)}
+                            className="ml-1 px-2 py-1 rounded-lg bg-orange-50 hover:bg-orange-100 text-orange-700 transition flex items-center gap-1 text-[11px] font-bold border border-orange-200 cursor-pointer"
+                            title="Show all nodes (reset focus)"
+                        >
+                            <X className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Show All</span>
+                        </button>
+                    </div>
+                )}
+
+                {/* Market demand legend (HTML overlay, must not swallow OrbitControls) */}
+                {marketOverlay && (
+                    <div className={`pointer-events-none absolute right-3 ${selectedNode ? "top-16" : "top-3"} z-10 select-none sm:right-4 ${selectedNode ? "sm:top-16" : "sm:top-4"}`}>
                     <div className="rounded-xl border border-slate-200 bg-white/85 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
                         <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-500">
                             MARKET DEMAND

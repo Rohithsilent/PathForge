@@ -91,12 +91,20 @@ export default function Topbar() {
                             <p className="text-xs font-bold text-slate-900 leading-none">{displayName}</p>
                             <p className="text-[10px] font-medium text-slate-400">{displayRole}</p>
                         </div>
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                <circle cx="12" cy="7" r="4" />
-                            </svg>
-                        </div>
+                        {user?.avatar ? (
+                            <img
+                                src={user.avatar}
+                                alt={displayName}
+                                className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-xs"
+                            />
+                        ) : (
+                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-sm">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                    <circle cx="12" cy="7" r="4" />
+                                </svg>
+                            </div>
+                        )}
                         <svg
                             width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
                             className={`text-slate-400 transition-transform duration-200 ${profileOpen ? "rotate-180" : ""}`}
@@ -106,14 +114,16 @@ export default function Topbar() {
                     </button>
 
                     {profileOpen && (
-                        <div className="absolute right-0 top-full mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-0 top-full mt-2 w-56 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                             <div className="px-4 py-3 border-b border-slate-100 bg-slate-50/50">
                                 <p className="text-xs font-bold text-slate-900">{displayName}</p>
                                 <p className="text-[10px] text-slate-400 font-medium mt-0.5">{displayRole} · PathForge</p>
                             </div>
                             <div className="py-1">
-                                <DropdownItem icon="home" label="Back to Home" onClick={() => { setProfileOpen(false); router.push("/") }} />
+                                <DropdownItem icon="user" label="My Profile & Skills" onClick={() => { setProfileOpen(false); router.push("/profile") }} />
+                                <DropdownItem icon="link" label="Connect Accounts" onClick={() => { setProfileOpen(false); router.push("/setup") }} />
                                 <DropdownItem icon="analytics" label="Analytics" onClick={() => { setProfileOpen(false); router.push("/dashboard/analytics") }} />
+                                <DropdownItem icon="home" label="Back to Home" onClick={() => { setProfileOpen(false); router.push("/") }} />
                                 <div className="h-px bg-slate-100 mx-3 my-1" />
                                 <DropdownItem icon="logout" label="Sign Out" onClick={() => { useAuthStore.getState().logout(); try { localStorage.removeItem("token") } catch { /* ignore storage errors */ }; setProfileOpen(false); router.push("/") }} danger />
                             </div>
@@ -191,6 +201,14 @@ export default function Topbar() {
                             <div className="space-y-1 pt-2 border-t border-slate-100">
                                 <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.2em] px-1">Navigation</p>
                                 <MobileMenuButton
+                                    label="👤 My Profile & Skills"
+                                    onClick={() => { router.push("/profile"); setMobileMenuOpen(false) }}
+                                />
+                                <MobileMenuButton
+                                    label="🔗 Connect Accounts"
+                                    onClick={() => { router.push("/setup"); setMobileMenuOpen(false) }}
+                                />
+                                <MobileMenuButton
                                     label="📊 Analytics"
                                     onClick={() => { router.push("/dashboard/analytics"); setMobileMenuOpen(false) }}
                                 />
@@ -262,6 +280,18 @@ function DropdownItem({
     danger?: boolean
 }) {
     const icons: Record<string, JSX.Element> = {
+        user: (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+            </svg>
+        ),
+        link: (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+        ),
         home: (
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />

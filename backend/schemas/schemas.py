@@ -7,6 +7,10 @@ class GitHubLoginRequest(BaseModel):
     code: str
 
 
+class FirebaseLoginRequest(BaseModel):
+    id_token: str  # Firebase ID token from Google Sign-In
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
@@ -15,6 +19,18 @@ class TokenResponse(BaseModel):
 
 class GitHubSyncRequest(BaseModel):
     token: str
+
+
+# --- GitHub Profile ---
+class GitHubProfileRequest(BaseModel):
+    username: str
+    token: Optional[str] = None  # optional PAT for higher rate limits
+
+
+# --- LinkedIn ---
+class LinkedInRequest(BaseModel):
+    profile_url: Optional[str] = None
+    profile_text: str  # pasted About / Experience / Skills text
 
 
 class RepoAnalyzeRequest(BaseModel):
