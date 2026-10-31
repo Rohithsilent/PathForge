@@ -1,0 +1,284 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 33% 98%;
+    /* #F4F7FE */
+    --foreground: 231 53% 23%;
+    /* #1B2559 */
+
+    --card: 0 0% 100%;
+    --card-foreground: 231 53% 23%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 231 53% 23%;
+
+    --primary: 29 100% 50%;
+    /* #FF7A00 */
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 231 53% 23%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 8% 56%;
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 231 53% 23%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 220 13% 91%;
+    /* #E2E8F0 */
+    --input: 220 13% 91%;
+    --ring: 29 100% 50%;
+
+    --radius: 1rem;
+
+    --chart-1: oklch(0.32 0 none);
+
+    --chart-2: oklch(0.41 0 none);
+
+    --chart-3: oklch(0.54 0 none);
+
+    --chart-4: oklch(0.71 0 none);
+
+    --chart-5: oklch(0.89 0 none);
+
+    --chart-background: oklch(1 0 0);
+
+    --chart-foreground: oklch(0.145 0.004 285);
+
+    --chart-foreground-muted: oklch(0.55 0.014 260);
+
+    --chart-line-primary: var(--chart-1);
+
+    --chart-line-secondary: var(--chart-2);
+
+    --chart-crosshair: oklch(0.4 0.1828 274.34);
+
+    --chart-grid: oklch(0.9 0 0);
+
+    --chart-tooltip-background: oklch(0.21 0.006 285 / 0.8);
+
+    --chart-tooltip-foreground: oklch(0.985 0 0);
+
+    --chart-tooltip-muted: oklch(0.65 0.01 260);
+
+    --chart-marker-background: oklch(0.97 0.005 260);
+
+    --chart-marker-border: oklch(0.85 0.01 260);
+
+    --chart-marker-foreground: oklch(0.3 0.01 260);
+
+    --chart-ring-background: oklch(0.9 0.005 260 / 0.25);
+
+    --chart-label: oklch(0.45 0.01 260);
+  }
+
+  .dark {
+    --chart-1: oklch(1 0 none);
+    --chart-2: oklch(0.73 0 none);
+    --chart-3: oklch(0.51 0 none);
+    --chart-4: oklch(0.39 0 none);
+    --chart-5: oklch(0.32 0 none);
+    --chart-background: oklch(0.145 0 0);
+    --chart-foreground: oklch(0.45 0 0);
+    --chart-foreground-muted: oklch(0.65 0.01 260);
+    --chart-crosshair: oklch(0.45 0 0);
+    --chart-grid: oklch(0.25 0 0);
+    --chart-marker-background: oklch(0.25 0.01 260);
+    --chart-marker-border: oklch(0.4 0.01 260);
+    --chart-marker-foreground: oklch(0.9 0 0);
+    --chart-ring-background: oklch(0.35 0.01 260 / 0.25);
+    --chart-label: oklch(0.75 0.01 260);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-sans tracking-tight font-semibold;
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--background);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+  }
+}
+
+@layer utilities {
+  .premium-card {
+    @apply bg-card text-card-foreground rounded-2xl shadow-[0px_20px_27px_0px_rgba(0, 0, 0, 0.05)];
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .glow-cyan {
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+  }
+
+  .glow-violet {
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.3);
+  }
+
+  .glow-emerald {
+    box-shadow: 0 0 15px rgba(5, 150, 105, 0.3);
+  }
+
+  .glow-gold {
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.3);
+  }
+}
+
+/* ═══════════ Driver.js Tour Custom Styles ═══════════ */
+.driver-popover.pathforge-tour-popover {
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(249, 115, 22, 0.15), 0 4px 20px rgba(0, 0, 0, 0.08);
+  padding: 0;
+  max-width: 360px;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0f172a;
+  padding: 20px 20px 4px;
+  letter-spacing: -0.01em;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-description {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.6;
+  padding: 4px 20px 16px;
+  font-weight: 500;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-progress-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-footer {
+  padding: 0 16px 16px;
+  gap: 8px;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-prev-btn,
+.driver-popover.pathforge-tour-popover .driver-popover-next-btn {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 10px;
+  padding: 8px 18px;
+  border: none;
+  text-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-prev-btn {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-prev-btn:hover {
+  background: #e2e8f0;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-next-btn {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.35);
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-next-btn:hover {
+  background: linear-gradient(135deg, #ea580c, #c2410c);
+  box-shadow: 0 4px 12px rgba(249, 115, 22, 0.45);
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-close-btn {
+  color: #94a3b8;
+  width: 28px;
+  height: 28px;
+  top: 12px;
+  right: 12px;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-close-btn:hover {
+  color: #0f172a;
+}
+
+.driver-popover.pathforge-tour-popover .driver-popover-arrow-side-left,
+.driver-popover.pathforge-tour-popover .driver-popover-arrow-side-right,
+.driver-popover.pathforge-tour-popover .driver-popover-arrow-side-top,
+.driver-popover.pathforge-tour-popover .driver-popover-arrow-side-bottom {
+  border-color: #fed7aa;
+}
+
+/* Mobile responsive tour popover */
+@media (max-width: 640px) {
+  .driver-popover.pathforge-tour-popover {
+    max-width: calc(100vw - 32px) !important;
+    margin: 0 16px;
+  }
+
+  .driver-popover.pathforge-tour-popover .driver-popover-title {
+    font-size: 14px;
+    padding: 16px 16px 4px;
+  }
+
+  .driver-popover.pathforge-tour-popover .driver-popover-description {
+    font-size: 12px;
+    padding: 4px 16px 12px;
+  }
+
+  .driver-popover.pathforge-tour-popover .driver-popover-footer {
+    padding: 0 12px 12px;
+  }
+
+  .driver-popover.pathforge-tour-popover .driver-popover-prev-btn,
+  .driver-popover.pathforge-tour-popover .driver-popover-next-btn {
+    font-size: 11px;
+    padding: 6px 14px;
+  }
+}

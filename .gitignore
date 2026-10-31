@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# Build output
+.next/
+out/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+server_run.log
+server_log.txt
+dev.log
+tmp-profile.pdf
+demo-loader.png
+graph-zoom.png
+
+# Misc
+*.tsbuildinfo
+next-env.d.ts
+backup-*/
+
+# Local runtime data
+backend/data/
