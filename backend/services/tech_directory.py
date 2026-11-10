@@ -432,3 +432,119 @@ def match_technologies(text: str) -> List[Dict]:
         for name, cat in found.items()
     ]
 
+
+# Canonical inter-technology relationships: (tech_A, tech_B, relation_type, strength)
+TECH_RELATIONSHIPS: List[Tuple[str, str, str, float]] = [
+    # Frontend ecosystem
+    ("Next.js", "React", "EXTENDS", 0.95),
+    ("Framer Motion", "React", "INTEGRATES_WITH", 0.85),
+    ("shadcn/ui", "React", "BUILT_ON", 0.85),
+    ("React", "JavaScript", "WRITTEN_IN", 0.90),
+    ("React", "TypeScript", "TYPED_WITH", 0.90),
+    ("TypeScript", "JavaScript", "SUPERSET_OF", 0.95),
+    ("Vite", "JavaScript", "BUNDLES", 0.80),
+    ("Three.js", "JavaScript", "WRITTEN_IN", 0.85),
+    ("D3.js", "JavaScript", "WRITTEN_IN", 0.85),
+    ("Tailwind CSS", "CSS", "EXTENDS", 0.90),
+    ("CSS", "HTML", "STYLES", 0.85),
+    ("SCSS", "CSS", "SUPERSET_OF", 0.90),
+    ("Bootstrap", "CSS", "FRAMEWORK_FOR", 0.80),
+    ("Vue.js", "JavaScript", "WRITTEN_IN", 0.90),
+    ("Angular", "TypeScript", "WRITTEN_IN", 0.90),
+    ("Svelte", "JavaScript", "WRITTEN_IN", 0.90),
+    ("Responsive Design", "CSS", "APPLIED_TO", 0.85),
+    ("PWA", "JavaScript", "IMPLEMENTED_WITH", 0.80),
+    ("Accessibility", "HTML", "STANDARD_FOR", 0.80),
+
+    # Backend ecosystem
+    ("FastAPI", "Python", "WRITTEN_IN", 0.95),
+    ("Flask", "Python", "WRITTEN_IN", 0.90),
+    ("Django", "Python", "WRITTEN_IN", 0.95),
+    ("Express.js", "Node.js", "RUNS_ON", 0.95),
+    ("Express", "Node.js", "RUNS_ON", 0.95),
+    ("Passport.js", "Node.js", "AUTH_FOR", 0.85),
+    ("Passport.js", "Authentication", "IMPLEMENTS", 0.90),
+    ("Firebase Auth", "Authentication", "PROVIDES", 0.95),
+    ("REST API", "HTTPS", "PROTOCOL", 0.80),
+    ("WebSocket", "Real-time", "ENABLES", 0.95),
+    ("Node.js", "JavaScript", "RUNTIME_FOR", 0.95),
+
+    # ML & AI ecosystem
+    ("Pandas", "NumPy", "DEPENDS_ON", 0.90),
+    ("Pandas", "Python", "WRITTEN_IN", 0.90),
+    ("NumPy", "Python", "WRITTEN_IN", 0.95),
+    ("Matplotlib", "NumPy", "DEPENDS_ON", 0.85),
+    ("Plotly", "Pandas", "VISUALIZES", 0.85),
+    ("Keras", "TensorFlow", "HIGH_LEVEL_API", 0.95),
+    ("TensorFlow", "Python", "BINDINGS_FOR", 0.90),
+    ("PyTorch", "Python", "WRITTEN_IN", 0.95),
+    ("scikit-learn", "NumPy", "DEPENDS_ON", 0.90),
+    ("Streamlit", "Python", "FRAMEWORK_FOR", 0.90),
+    ("LangChain", "LLM", "ORCHESTRATES", 0.90),
+    ("Gemini", "LLM", "INSTANCE_OF", 0.90),
+    ("Claude", "LLM", "INSTANCE_OF", 0.90),
+    ("OpenCV", "Image Processing", "IMPLEMENTS", 0.90),
+    ("NLP", "Machine Learning", "SUBFIELD_OF", 0.90),
+    ("Jupyter", "Python", "INTERACTIVE_SHELL", 0.85),
+    ("Jupyter Notebook", "Python", "FORMAT_FOR", 0.85),
+
+    # DevOps & Infrastructure
+    ("GitHub Actions", "GitHub", "CI_CD_ON", 0.95),
+    ("GitHub Actions", "Git", "AUTOMATES", 0.90),
+    ("Docker", "Linux", "CONTAINERIZES", 0.90),
+    ("Docker Compose", "Docker", "ORCHESTRATES", 0.95),
+    ("PowerShell", "Shell", "ALTERNATIVE_TO", 0.80),
+    ("Terraform", "DevOps", "IAC_FOR", 0.90),
+    ("Git", "GitHub", "REMOTES_TO", 0.95),
+
+    # Mobile ecosystem
+    ("Flutter", "Dart", "WRITTEN_IN", 0.95),
+    ("Android", "Kotlin", "PRIMARY_LANG", 0.90),
+    ("iOS", "Swift", "PRIMARY_LANG", 0.90),
+
+    # Database ecosystem
+    ("PostgreSQL", "SQL", "DIALECT_OF", 0.95),
+    ("MySQL", "SQL", "DIALECT_OF", 0.95),
+    ("Redis", "Caching", "IMPLEMENTS", 0.90),
+    ("Pinecone", "Database", "VECTOR_DB", 0.85),
+]
+
+
+def infer_tech_relationships(nodes: List[Dict], existing_links: List[Dict]) -> List[Dict]:
+    """
+    Given a list of nodes and links, identify known technology relationships
+    where both technologies are present in nodes, and return the new links.
+    """
+    node_by_name: Dict[str, Dict] = {}
+    for n in nodes:
+        node_by_name[n.get("name", "").lower()] = n
+        node_by_name[n.get("id", "").lower()] = n
+
+    existing_pairs = set()
+    for l in existing_links:
+        s = l.get("source")
+        t = l.get("target")
+        s_id = s.get("id") if isinstance(s, dict) else str(s)
+        t_id = t.get("id") if isinstance(t, dict) else str(t)
+        existing_pairs.add((s_id, t_id))
+        existing_pairs.add((t_id, s_id))
+
+    new_links: List[Dict] = []
+    for src_name, tgt_name, rel_type, strength in TECH_RELATIONSHIPS:
+        s_node = node_by_name.get(src_name.lower())
+        t_node = node_by_name.get(tgt_name.lower())
+        if s_node and t_node and s_node["id"] != t_node["id"]:
+            pair = (s_node["id"], t_node["id"])
+            if pair not in existing_pairs:
+                link = {
+                    "source": s_node["id"],
+                    "target": t_node["id"],
+                    "type": rel_type,
+                    "strength": strength,
+                }
+                new_links.append(link)
+                existing_pairs.add(pair)
+                existing_pairs.add((t_node["id"], s_node["id"]))
+
+    return new_links
+

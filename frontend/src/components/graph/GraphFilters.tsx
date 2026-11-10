@@ -2,11 +2,13 @@
 import { useMemo, useState, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useGraphStore, FilterSource } from "@/stores/graphStore"
-import { Github, Linkedin, Filter, X, GitBranch, Circle, ChevronDown, ChevronUp, SlidersHorizontal } from "lucide-react"
+import { Github, Linkedin, Filter, X, GitBranch, Circle, ChevronDown, ChevronUp, SlidersHorizontal, FileText, Code2 } from "lucide-react"
 
 const SOURCE_COLORS: Record<string, string> = {
     github: "#f97316",
     linkedin: "#0A66C2",
+    leetcode: "#FFA116",
+    resume: "#10B981",
     notion: "#64748b",
     demo: "#8b5cf6",
 }
@@ -160,7 +162,9 @@ export default function GraphFilters() {
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1 flex items-center gap-1">
                                 <Filter className="w-3 h-3 text-slate-400" /> Source
                             </span>
-                            {(["all", "github", "linkedin"] as FilterSource[]).map((src) => (
+                            {(["all", "github", "leetcode", "resume", "linkedin"] as FilterSource[])
+                                .filter((src) => src === "all" || (sourceCounts[src] && sourceCounts[src] > 0))
+                                .map((src) => (
                                 <button
                                     key={src}
                                     onClick={() => setFilterSource(src)}
@@ -170,11 +174,17 @@ export default function GraphFilters() {
                                                 ? "bg-slate-900 text-white border-slate-900 shadow-2xs"
                                                 : src === "github"
                                                     ? "bg-orange-50 text-orange-700 border-orange-200 shadow-2xs"
-                                                    : "bg-blue-50 text-[#0A66C2] border-blue-200 shadow-2xs"
+                                                    : src === "leetcode"
+                                                        ? "bg-amber-50 text-amber-700 border-amber-200 shadow-2xs"
+                                                        : src === "resume"
+                                                            ? "bg-emerald-50 text-emerald-700 border-emerald-200 shadow-2xs"
+                                                            : "bg-blue-50 text-[#0A66C2] border-blue-200 shadow-2xs"
                                             : "bg-slate-50 text-slate-600 hover:bg-slate-100 border-slate-200/80"
                                     }`}
                                 >
                                     {src === "github" && <Github className="w-2.5 h-2.5" />}
+                                    {src === "leetcode" && <Code2 className="w-2.5 h-2.5" />}
+                                    {src === "resume" && <FileText className="w-2.5 h-2.5" />}
                                     {src === "linkedin" && <Linkedin className="w-2.5 h-2.5" />}
                                     {src === "all" ? "All" : src.charAt(0).toUpperCase() + src.slice(1)}
                                     {sourceCounts[src] !== undefined && (

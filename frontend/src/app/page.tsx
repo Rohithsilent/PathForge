@@ -688,8 +688,8 @@ export default function LandingPage() {
                             {
                                 step: "01",
                                 icon: GitBranch,
-                                title: "Connect",
-                                desc: "Paste any public GitHub repo — or try the demo with a sample student profile. No setup, no account.",
+                                title: "Connect Evidence",
+                                desc: "Connect GitHub, LeetCode, or your Resume — or explore the interactive demo with a pre-loaded developer profile.",
                                 gradient: "from-orange-500 to-amber-500",
                             },
                             {

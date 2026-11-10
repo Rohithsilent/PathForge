@@ -127,3 +127,14 @@ class NotionPageSummary(BaseModel):
     id: str
     title: str
     skills_extracted: List[str] = []
+
+
+# --- LeetCode ---
+class LeetCodeRequest(BaseModel):
+    username: str
+
+
+# --- Resume ---
+class ResumeTextRequest(BaseModel):
+    resume_text: str
+    filename: Optional[str] = "resume.txt"

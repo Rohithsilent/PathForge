@@ -13,6 +13,12 @@ interface AuthUser {
     linkedin_username?: string
     linkedin_connected?: boolean
     github_connected?: boolean
+    leetcode_username?: string
+    leetcode_connected?: boolean
+    leetcode_stats?: any
+    resume_connected?: boolean
+    resume_filename?: string
+    resume_skills?: any[]
     onboarding_completed?: boolean
 }
 
@@ -34,6 +40,9 @@ interface AuthState {
     updateLinkedinUsername: (username: string) => void
     setLinkedinConnected: (connected: boolean) => void
     setGithubConnected: (connected: boolean) => void
+    updateLeetCodeUsername: (username: string) => void
+    setLeetCodeConnected: (connected: boolean, stats?: any) => void
+    setResumeConnected: (connected: boolean, filename?: string, skills?: any[]) => void
     setOnboardingCompleted: (completed: boolean) => void
     logout: () => void
 }
@@ -67,6 +76,30 @@ export const useAuthStore = create<AuthState>()(
             setGithubConnected: (connected) =>
                 set((state) => ({
                     user: state.user ? { ...state.user, github_connected: connected } : state.user,
+                })),
+
+            updateLeetCodeUsername: (username) =>
+                set((state) => ({
+                    user: state.user ? { ...state.user, leetcode_username: username } : state.user,
+                })),
+
+            setLeetCodeConnected: (connected, stats) =>
+                set((state) => ({
+                    user: state.user ? {
+                        ...state.user,
+                        leetcode_connected: connected,
+                        ...(stats ? { leetcode_stats: stats } : {}),
+                    } : state.user,
+                })),
+
+            setResumeConnected: (connected, filename, skills) =>
+                set((state) => ({
+                    user: state.user ? {
+                        ...state.user,
+                        resume_connected: connected,
+                        ...(filename ? { resume_filename: filename } : {}),
+                        ...(skills ? { resume_skills: skills } : {}),
+                    } : state.user,
                 })),
 
             setOnboardingCompleted: (completed) =>

@@ -38,10 +38,12 @@
 ### 🔐 4. Multi-Provider Authentication & Smart Onboarding
 - **Firebase Google Authentication**: Fast, secure 1-click Google Sign-In via Firebase Auth.
 - **GitHub OAuth Integration**: Connect your GitHub account to automatically pull public repositories for instant skill graph generation.
+- **LeetCode Integration**: Query public LeetCode GraphQL statistics (Easy/Medium/Hard problem counts, global ranking, algorithmic topic tags, languages) and verify DSA competence.
+- **Resume Parsing & Ingestion**: Drag-and-drop PDF resume upload (or plaintext paste) with automatic AI skill extraction, work experience detection, and project mapping.
 - **LinkedIn Integration**: Connect and ingest LinkedIn profile data to surface verified certifications, work history, and endorsements.
 - **Smart Onboarding Flow**:
-  - The `/setup` onboarding flow is **only prompted for new users**.
-  - Returning users who have already selected their target role are automatically routed directly to their personalized `/dashboard`.
+  - The `/setup` onboarding flow provides an interactive 4-step wizard: **GitHub** &rarr; **LeetCode** &rarr; **Resume** &rarr; **LinkedIn**.
+  - Returning users who have already onboarded are automatically routed directly to their personalized `/dashboard`.
 - **User Profile Persistence**: User settings and connected account statuses are stored securely in `backend/data/users/`.
 
 ### 👤 5. Public Sharable Profiles & Social Proof
@@ -245,6 +247,9 @@ Configure your provider via `AI_PROVIDER` in `backend/.env`:
 | `/profile/{username}` | `GET` | Public developer profile summary & verified skill badges |
 | `/github/analyze-profile` | `POST` | Multi-repo deep scan and skill extraction |
 | `/github/analyze` | `POST` | Single-repo analysis directly from landing page |
+| `/leetcode/analyze` | `POST` | Fetches LeetCode stats, tags, languages & maps algorithmic concepts |
+| `/resume/upload` | `POST` | Extracts skills, experience & projects from uploaded PDF/text resume |
+| `/resume/analyze-text` | `POST` | Extracts skills and projects from pasted resume text |
 | `/linkedin/ingest` | `POST` | Ingests LinkedIn profile information and endorsements |
 | `/graph/` | `GET` | Retrieves active 3D knowledge graph nodes & links |
 | `/graph/demo` | `POST` | Seeds demo graph dataset for instant testing |
@@ -260,7 +265,7 @@ Configure your provider via `AI_PROVIDER` in `backend/.env`:
 | Requirement | Implementation Details | Status |
 |---|---|:---:|
 | **GitHub Data Extraction** | Live repo fetching, commit history, language breakdown, and deep file scanning | ✅ |
-| **Multi-Source Integration** | GitHub repositories, LinkedIn profiles, and certifications | ✅ |
+| **Multi-Source Integration** | GitHub repositories, LeetCode algorithmic stats, Resume PDF parsing, and LinkedIn profiles | ✅ |
 | **NLP Skill Extraction** | Open-weight LLMs + deep AST & keyword pattern-matching | ✅ |
 | **Graph Database** | Interactive graph model with in-memory persistence and Neo4j AuraDB support | ✅ |
 | **Interactive 3D Visualization** | React Three Fiber, Three.js, d3-force-3d, camera controls & dynamic sprites | ✅ |

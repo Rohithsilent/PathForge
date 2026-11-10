@@ -38,7 +38,7 @@ const KnowledgeGraph3D = dynamic(
 function DashboardContent() {
     const searchParams = useSearchParams()
     const isDemo = searchParams.get("demo") === "true"
-    const { setGraphData, graphData, showInsights, marketOverlay, recruiterMode, copilotMode, roadmapMode, activeRepos, filterSource } = useGraphStore()
+    const { setGraphData, graphData, showInsights, marketOverlay, recruiterMode, copilotMode, roadmapMode, activeRepos, filterSource, webglSupported } = useGraphStore()
     const { setCurrentScore, setGaps, setTargetRole } = useSkillStore()
     const { setUser, setIsDemo, user, githubProfile } = useAuthStore()
 
@@ -61,9 +61,9 @@ function DashboardContent() {
         // view and exported PDF all tell the same story as the graph.
         if (isDemo) {
             setUser({
-                name: "Aryan Sharma",
-                username: "demo-user",
-                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=demo",
+                name: "Tony Stark",
+                username: "tonystark",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=TonyStark&facialHair=beardLight&facialHairProbability=100&hairColor=2c1b18&facialHairColor=2c1b18&accessories=sunglasses&accessoriesProbability=100&backgroundColor=ffedd5",
                 target_role: "ML Engineer",
             })
             setTargetRole("ML Engineer")
@@ -203,28 +203,30 @@ function DashboardContent() {
                         </div>
                     )}
 
-                    {/* 3D Graph — takes remaining width */}
-                    <div id="tour-graph" className="flex-1 min-h-0 relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-                        <SearchFilter />
+                    {/* 3D Graph / 2D Node Map — takes remaining width */}
+                    <div id="tour-graph" className="flex-1 min-h-0 relative bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden flex flex-col">
+                        {webglSupported !== false && <SearchFilter variant="floating" />}
                         <KnowledgeGraph3D />
 
-                        {/* Legend */}
-                        <div id="tour-legend" className="absolute bottom-4 md:bottom-6 left-4 md:left-6 z-10 bg-white/80 backdrop-blur-md rounded-xl p-2 md:p-3 border border-slate-100 flex gap-2 md:gap-4 shadow-sm flex-wrap">
-                            {[
-                                { label: "Repo", color: CATEGORY_COLORS.repo },
-                                { label: "Language", color: CATEGORY_COLORS.language },
-                                { label: "Concept", color: CATEGORY_COLORS.concept },
-                                { label: "Frontend", color: CATEGORY_COLORS.frontend },
-                                { label: "Backend", color: CATEGORY_COLORS.backend },
-                                { label: "ML/AI", color: CATEGORY_COLORS.ml },
-                                { label: "DevOps", color: CATEGORY_COLORS.devops },
-                            ].map((item) => (
-                                <div key={item.label} className="flex items-center gap-1 md:gap-1.5">
-                                    <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                    <span className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-tight">{item.label}</span>
-                                </div>
-                            ))}
-                        </div>
+                        {/* Legend — only floating in 3D mode where nodes don't have text labels */}
+                        {webglSupported !== false && (
+                            <div id="tour-legend" className="absolute bottom-4 md:bottom-6 left-4 md:left-6 z-10 bg-white/80 backdrop-blur-md rounded-xl p-2 md:p-3 border border-slate-100 flex gap-2 md:gap-4 shadow-sm flex-wrap">
+                                {[
+                                    { label: "Repo", color: CATEGORY_COLORS.repo },
+                                    { label: "Language", color: CATEGORY_COLORS.language },
+                                    { label: "Concept", color: CATEGORY_COLORS.concept },
+                                    { label: "Frontend", color: CATEGORY_COLORS.frontend },
+                                    { label: "Backend", color: CATEGORY_COLORS.backend },
+                                    { label: "ML/AI", color: CATEGORY_COLORS.ml },
+                                    { label: "DevOps", color: CATEGORY_COLORS.devops },
+                                ].map((item) => (
+                                    <div key={item.label} className="flex items-center gap-1 md:gap-1.5">
+                                        <div className="w-2 h-2 md:w-2.5 md:h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                        <span className="text-[8px] md:text-[10px] font-bold text-slate-500 uppercase tracking-tight">{item.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

@@ -160,6 +160,56 @@ export const getAIStatus = async () => {
     }
 }
 
+// ── LeetCode ──────────────────────────────────────────────────────────
+export interface LeetCodeStats {
+    status: string
+    username: string
+    total_solved: number
+    easy_solved: number
+    medium_solved: number
+    hard_solved: number
+    ranking: number
+    reputation: number
+    tags_count: number
+    languages: Array<{ language: string; problems_solved: number }>
+    new_nodes_count: number
+    new_links_count: number
+    graph?: any
+}
+
+export const analyzeLeetCode = async (username: string): Promise<LeetCodeStats> => {
+    const res = await api.post('/leetcode/analyze', { username })
+    return res.data
+}
+
+// ── Resume ────────────────────────────────────────────────────────────
+export interface ResumeExtractionResult {
+    status: string
+    filename: string
+    total_extracted: number
+    domain: string
+    years_experience: number
+    projects: string[]
+    skills: Array<{ name: string; category: string; confidence: number }>
+    new_nodes_count: number
+    new_links_count: number
+    graph?: any
+}
+
+export const uploadResume = async (file: File): Promise<ResumeExtractionResult> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await api.post('/resume/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data
+}
+
+export const analyzeResumeText = async (resume_text: string, filename?: string): Promise<ResumeExtractionResult> => {
+    const res = await api.post('/resume/analyze-text', { resume_text, filename })
+    return res.data
+}
+
 // ── Types ─────────────────────────────────────────────────────────────
 export interface GitHubProfile {
     username: string

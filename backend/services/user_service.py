@@ -89,6 +89,8 @@ def save_user_profile(uid: str, profile_data: Dict[str, Any]) -> Dict[str, Any]:
                 "github_username": merged.get("github_username", ""),
                 "github_connected": bool(merged.get("github_connected")),
                 "linkedin_connected": bool(merged.get("linkedin_connected")),
+                "leetcode_connected": bool(merged.get("leetcode_connected")),
+                "resume_connected": bool(merged.get("resume_connected")),
                 "target_role": merged.get("target_role", "Full Stack Developer"),
             }
             fb_auth.set_custom_user_claims(uid, claims)
@@ -117,5 +119,7 @@ def is_onboarding_completed(uid: str) -> bool:
     return bool(
         profile.get("onboarding_completed") or
         profile.get("github_connected") or
-        profile.get("linkedin_connected")
+        profile.get("linkedin_connected") or
+        profile.get("leetcode_connected") or
+        profile.get("resume_connected")
     )

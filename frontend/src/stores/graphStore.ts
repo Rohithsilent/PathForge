@@ -20,7 +20,7 @@ interface GraphLink {
 }
 
 export type AnalysisEngine = 'ollama' | 'openrouter'
-export type FilterSource = 'all' | 'github' | 'linkedin'
+export type FilterSource = 'all' | 'github' | 'linkedin' | 'leetcode' | 'resume'
 
 interface GraphState {
     graphData: { nodes: GraphNode[]; links: GraphLink[] }
@@ -35,6 +35,8 @@ interface GraphState {
     copilotMode: boolean
     roadmapMode: boolean
     analysisEngine: AnalysisEngine
+    webglSupported: boolean | null
+    setWebglSupported: (supported: boolean) => void
     setGraphData: (data: { nodes: GraphNode[]; links: GraphLink[] }) => void
     setSelectedNode: (node: GraphNode | null) => void
     setSearchTerm: (term: string) => void
@@ -64,6 +66,8 @@ export const useGraphStore = create<GraphState>((set) => ({
     copilotMode: false,
     roadmapMode: false,
     analysisEngine: 'ollama',
+    webglSupported: null,
+    setWebglSupported: (supported) => set({ webglSupported: supported }),
     setGraphData: (data) => set({ graphData: data }),
     setSelectedNode: (node) => set({ selectedNode: node }),
     setSearchTerm: (term) => set({ searchTerm: term }),

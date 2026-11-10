@@ -2,13 +2,23 @@
 import { useGraphStore } from "@/stores/graphStore"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 
-const CATEGORIES = ["all", "frontend", "backend", "ml", "devops", "database", "cert", "concept"]
+export const CATEGORIES = ["all", "frontend", "backend", "ml", "devops", "database", "cert", "concept"]
 
-export default function SearchFilter() {
+interface SearchFilterProps {
+    className?: string
+    variant?: "floating" | "inline"
+}
+
+export default function SearchFilter({ className = "", variant = "floating" }: SearchFilterProps) {
     const { searchTerm, setSearchTerm, filterCategory, setFilterCategory } = useGraphStore()
 
+    const baseClasses =
+        variant === "floating"
+            ? "absolute top-3 left-3 md:top-4 md:left-4 z-10 flex flex-col gap-2 max-w-[calc(100%-24px)] md:max-w-none"
+            : "flex flex-col gap-2 w-full"
+
     return (
-        <div id="tour-search" className="absolute top-3 left-3 md:top-4 md:left-4 z-10 flex flex-col gap-2 max-w-[calc(100%-24px)] md:max-w-none">
+        <div id="tour-search" className={`${baseClasses} ${className}`}>
             {/* Search input */}
             <input
                 value={searchTerm}

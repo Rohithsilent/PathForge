@@ -5,7 +5,9 @@ import { Billboard, Text, Line, OrbitControls } from "@react-three/drei"
 import { useGraphStore } from "@/stores/graphStore"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 import { getCategoryGlyph, getTechIcon } from "@/lib/tech-metadata"
-import { X } from "lucide-react"
+import { X, Search } from "lucide-react"
+import WebGLNoticeBar from "./WebGLNoticeBar"
+import { CATEGORIES } from "@/components/panels/SearchFilter"
 import * as THREE from "three"
 import {
     forceSimulation,
@@ -685,6 +687,63 @@ function GraphScene() {
         return ids
     }, [selectedNode, simLinks, graphData])
 
+    // Nodes matching the active category filter (including connected hub nodes like repos/certs)
+    const categoryMatchingNodeIds = useMemo(() => {
+        if (!filterCategory || filterCategory === "all") return null
+        const ids = new Set<string>()
+
+        // 1. Direct category matches
+        const directCatNodeIds = new Set<string>()
+        graphData.nodes.forEach((n) => {
+            if (n.category === filterCategory) {
+                ids.add(n.id)
+                ids.add(n.name)
+                directCatNodeIds.add(n.id)
+                directCatNodeIds.add(n.name)
+            }
+        })
+
+        // 2. Connected hub nodes (repos, certs, or concepts connected to these category skills)
+        const linksToScan = simLinks.length > 0 ? simLinks : (graphData.links || [])
+        linksToScan.forEach((l: any) => {
+            const srcId = typeof l.source === "string" ? l.source : l.source?.id
+            const tgtId = typeof l.target === "string" ? l.target : l.target?.id
+
+            const srcMatch = directCatNodeIds.has(srcId)
+            const tgtMatch = directCatNodeIds.has(tgtId)
+
+            if (srcMatch && tgtId) {
+                const tgtNode = graphData.nodes.find((n) => n.id === tgtId || n.name === tgtId)
+                if (tgtNode && (tgtNode.category === "repo" || tgtNode.category === "cert" || tgtNode.category === "concept" || tgtNode.category === filterCategory)) {
+                    ids.add(tgtId)
+                    ids.add(tgtNode.name)
+                }
+            }
+            if (tgtMatch && srcId) {
+                const srcNode = graphData.nodes.find((n) => n.id === srcId || n.name === srcId)
+                if (srcNode && (srcNode.category === "repo" || srcNode.category === "cert" || srcNode.category === "concept" || srcNode.category === filterCategory)) {
+                    ids.add(srcId)
+                    ids.add(srcNode.name)
+                }
+            }
+        })
+
+        // Also check repo properties:
+        graphData.nodes.forEach((n) => {
+            if (n.category === "repo") {
+                const hasSkill = graphData.nodes.some(
+                    (s) => s.category === filterCategory && (s.repo === n.name || (Array.isArray(s.repos) && s.repos.includes(n.name)))
+                )
+                if (hasSkill) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            }
+        })
+
+        return ids
+    }, [graphData.nodes, graphData.links, simLinks, filterCategory])
+
     // Filter nodes
     const visibleNodes = useMemo(() => {
         return simNodes.filter((node: any) => {
@@ -696,7 +755,7 @@ function GraphScene() {
             const matchesSearch =
                 !searchTerm || node.name.toLowerCase().includes(searchTerm.toLowerCase())
             const matchesCategory =
-                !filterCategory || filterCategory === "all" || node.category === filterCategory
+                !categoryMatchingNodeIds || categoryMatchingNodeIds.has(node.id) || categoryMatchingNodeIds.has(node.name)
 
             // Source filter ('all' | 'github' | 'linkedin')
             const nodeSource = node.source || "github"
@@ -709,7 +768,7 @@ function GraphScene() {
 
             return matchesSearch && matchesCategory && matchesSource && matchesRepo
         })
-    }, [simNodes, connectedNodeIds, searchTerm, filterCategory, filterSource, activeRepoNodeIds])
+    }, [simNodes, connectedNodeIds, searchTerm, categoryMatchingNodeIds, filterSource, activeRepoNodeIds])
 
     const visibleIds = useMemo(() => new Set(visibleNodes.map((n) => n.id)), [visibleNodes])
 
@@ -772,6 +831,9 @@ class WebGLErrorBoundary extends Component<
 
     componentDidCatch(error: any) {
         console.warn("WebGL canvas error caught by boundary:", error)
+        try {
+            useGraphStore.getState().setWebglSupported(false)
+        } catch { }
     }
 
     render() {
@@ -788,7 +850,9 @@ function WebGLFallbackView() {
         selectedNode,
         setSelectedNode,
         searchTerm,
+        setSearchTerm,
         filterCategory,
+        setFilterCategory,
         filterSource,
         activeRepos,
     } = useGraphStore()
@@ -865,6 +929,60 @@ function WebGLFallbackView() {
         return ids
     }, [selectedNode, graphData])
 
+    const categoryMatchingNodeIds = useMemo(() => {
+        if (!filterCategory || filterCategory === "all") return null
+        const ids = new Set<string>()
+
+        const directCatNodeIds = new Set<string>()
+        graphData.nodes.forEach((n) => {
+            if (n.category === filterCategory) {
+                ids.add(n.id)
+                ids.add(n.name)
+                directCatNodeIds.add(n.id)
+                directCatNodeIds.add(n.name)
+            }
+        })
+
+        if (graphData.links) {
+            graphData.links.forEach((l: any) => {
+                const srcId = typeof l.source === "string" ? l.source : l.source?.id
+                const tgtId = typeof l.target === "string" ? l.target : l.target?.id
+
+                const srcMatch = directCatNodeIds.has(srcId)
+                const tgtMatch = directCatNodeIds.has(tgtId)
+
+                if (srcMatch && tgtId) {
+                    const tgtNode = graphData.nodes.find((n) => n.id === tgtId || n.name === tgtId)
+                    if (tgtNode && (tgtNode.category === "repo" || tgtNode.category === "cert" || tgtNode.category === "concept" || tgtNode.category === filterCategory)) {
+                        ids.add(tgtId)
+                        ids.add(tgtNode.name)
+                    }
+                }
+                if (tgtMatch && srcId) {
+                    const srcNode = graphData.nodes.find((n) => n.id === srcId || n.name === srcId)
+                    if (srcNode && (srcNode.category === "repo" || srcNode.category === "cert" || srcNode.category === "concept" || srcNode.category === filterCategory)) {
+                        ids.add(srcId)
+                        ids.add(srcNode.name)
+                    }
+                }
+            })
+        }
+
+        graphData.nodes.forEach((n) => {
+            if (n.category === "repo") {
+                const hasSkill = graphData.nodes.some(
+                    (s) => s.category === filterCategory && (s.repo === n.name || (Array.isArray(s.repos) && s.repos.includes(n.name)))
+                )
+                if (hasSkill) {
+                    ids.add(n.id)
+                    ids.add(n.name)
+                }
+            }
+        })
+
+        return ids
+    }, [graphData.nodes, graphData.links, filterCategory])
+
     const visibleNodes = useMemo(() => {
         return graphData.nodes.filter((node: any) => {
             if (connectedNodeIds) {
@@ -874,7 +992,7 @@ function WebGLFallbackView() {
             const matchesSearch =
                 !searchTerm || node.name.toLowerCase().includes(searchTerm.toLowerCase())
             const matchesCategory =
-                !filterCategory || filterCategory === "all" || node.category === filterCategory
+                !categoryMatchingNodeIds || categoryMatchingNodeIds.has(node.id) || categoryMatchingNodeIds.has(node.name)
 
             const nodeSource = node.source || "github"
             const matchesSource =
@@ -885,71 +1003,176 @@ function WebGLFallbackView() {
 
             return matchesSearch && matchesCategory && matchesSource && matchesRepo
         })
-    }, [graphData.nodes, connectedNodeIds, searchTerm, filterCategory, filterSource, activeRepoNodeIds])
+    }, [graphData.nodes, connectedNodeIds, searchTerm, categoryMatchingNodeIds, filterSource, activeRepoNodeIds])
 
     return (
-        <div className="w-full h-full p-4 md:p-6 overflow-y-auto flex flex-col gap-4 bg-[#F8F9FA]">
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-amber-900 text-xs flex items-start gap-3 shadow-sm">
-                <span className="text-base leading-none">⚠️</span>
-                <div className="flex-1 space-y-1">
-                    <p className="font-bold text-amber-950">3D WebGL Acceleration is currently unavailable in this browser</p>
-                    <p className="text-[11px] text-amber-800 leading-relaxed">
-                        Your browser or graphics driver cannot initialize a 3D WebGL context. Displaying the interactive 2D node map below so all career scores, gaps, and insights remain fully functional.
-                    </p>
-                    <p className="text-[10px] text-amber-700">
-                        Tip to enable 3D: In Chrome/Brave/Edge, open <code className="bg-amber-100 px-1 py-0.5 rounded font-mono">Settings &gt; System</code>, enable <strong>&ldquo;Use graphics acceleration when available&rdquo;</strong>, and restart the browser.
-                    </p>
+        <div className="w-full h-full flex flex-col bg-[#F8F9FA] overflow-hidden">
+            {/* 2D Dedicated Header: Search + Category Filters + Notice Bar */}
+            <div className="p-3 sm:p-4 bg-white/95 backdrop-blur-xs border-b border-slate-200/90 shadow-2xs shrink-0 flex flex-col gap-2.5 z-20">
+                {/* Row 1: Search & Focus (Left) and Notice Bar (Right) */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                    <div id="tour-search" className="flex items-center gap-2 flex-wrap min-w-0">
+                        <div className="relative flex items-center">
+                            <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-400 pointer-events-none" />
+                            <input
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                placeholder="Search skills in 2D..."
+                                className="w-48 sm:w-60 pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl
+                                   font-semibold text-xs text-slate-900 placeholder:text-slate-400
+                                   shadow-2xs focus:bg-white focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900/10
+                                   transition-all"
+                            />
+                        </div>
+
+                        {selectedNode && (
+                            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-orange-50 border border-orange-200/90 rounded-xl text-xs font-semibold text-orange-950 shadow-2xs animate-in fade-in">
+                                <span
+                                    className="w-2 h-2 rounded-full shrink-0"
+                                    style={{ backgroundColor: CATEGORY_COLORS[selectedNode.category] || "#F97316" }}
+                                />
+                                <span className="text-[10px] uppercase font-bold text-orange-600">Focused:</span>
+                                <span className="font-bold text-slate-900 truncate max-w-[120px]">{selectedNode.name}</span>
+                                <button
+                                    onClick={() => setSelectedNode(null)}
+                                    className="ml-1 p-0.5 rounded-md hover:bg-orange-100 text-orange-700 hover:text-orange-950 transition cursor-pointer"
+                                    title="Show all skills (reset focus)"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Non-distracting, visible 2D notification bar */}
+                    <WebGLNoticeBar />
+                </div>
+
+                {/* Row 2: Category Filter Pills & Count */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                    <div className="flex flex-wrap gap-1">
+                        {CATEGORIES.map((cat) => (
+                            <button
+                                key={cat}
+                                onClick={() => setFilterCategory(cat === filterCategory ? "all" : cat)}
+                                className="px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase tracking-wider border transition-all hover:scale-105 cursor-pointer shadow-2xs"
+                                style={{
+                                    borderColor:
+                                        filterCategory === cat
+                                            ? CATEGORY_COLORS[cat] || "#0F172A"
+                                            : "#E2E8F0",
+                                    color:
+                                        filterCategory === cat
+                                            ? CATEGORY_COLORS[cat] || "#0F172A"
+                                            : "#64748B",
+                                    background:
+                                        filterCategory === cat
+                                            ? `${CATEGORY_COLORS[cat] || "#0F172A"}15`
+                                            : "#FFFFFF",
+                                }}
+                            >
+                                {cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    <span className="text-[11px] font-semibold text-slate-400">
+                        {visibleNodes.length} of {graphData.nodes.length} skills
+                    </span>
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {visibleNodes.map((node) => {
-                    const isSelected = selectedNode?.id === node.id
-                    const color = CATEGORY_COLORS[node.category] || "#64748B"
-                    return (
-                        <button
-                            key={node.id}
-                            onClick={() => {
-                                if (selectedNode?.id === node.id) {
+            {/* Scrollable Node Cards Grid */}
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 min-h-0 flex flex-col justify-between">
+                <div>
+                    {visibleNodes.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                            <span className="text-3xl mb-2">🔍</span>
+                            <p className="font-bold text-sm text-slate-800">No skills match your filters</p>
+                            <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                                Try clearing your search term or selecting another category filter to explore all available skills.
+                            </p>
+                            <button
+                                onClick={() => {
+                                    setSearchTerm("")
+                                    setFilterCategory("all")
                                     setSelectedNode(null)
-                                } else {
-                                    setSelectedNode(node as any)
-                                }
-                            }}
-                            className={`flex flex-col items-start p-3 rounded-xl border text-left transition-all ${
-                                isSelected
-                                    ? "bg-slate-900 border-slate-900 text-white shadow-md scale-[1.02]"
-                                    : "bg-white border-slate-200 text-slate-800 hover:border-slate-300 hover:shadow-sm"
-                            }`}
-                        >
-                            <div className="flex items-center justify-between w-full mb-2">
-                                <span
-                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider"
-                                    style={{
-                                        backgroundColor: isSelected ? "rgba(255,255,255,0.2)" : `${color}20`,
-                                        color: isSelected ? "#FFFFFF" : color,
-                                    }}
-                                >
-                                    {node.category}
-                                </span>
-                                <span
-                                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                    style={{
-                                        backgroundColor: isSelected ? "rgba(255,255,255,0.15)" : `${demandColor(node.market_demand)}15`,
-                                        color: isSelected ? "#FFFFFF" : demandColor(node.market_demand),
-                                    }}
-                                >
-                                    {node.market_demand}%
-                                </span>
-                            </div>
-                            <span className="font-bold text-xs truncate w-full">{node.name}</span>
-                            <div className="w-full mt-2 pt-2 border-t border-slate-100/60 flex items-center justify-between text-[10px] opacity-75">
-                                <span>Maturity</span>
-                                <span className="font-semibold">{node.maturity}%</span>
-                            </div>
-                        </button>
-                    )
-                })}
+                                }}
+                                className="mt-4 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-semibold text-xs hover:bg-slate-800 transition cursor-pointer shadow-xs"
+                            >
+                                Reset Filters
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                            {visibleNodes.map((node) => {
+                                const isSelected = selectedNode?.id === node.id
+                                const color = CATEGORY_COLORS[node.category] || "#64748B"
+                                return (
+                                    <button
+                                        key={node.id}
+                                        onClick={() => {
+                                            if (selectedNode?.id === node.id) {
+                                                setSelectedNode(null)
+                                            } else {
+                                                setSelectedNode(node as any)
+                                            }
+                                        }}
+                                        className={`flex flex-col items-start p-3 rounded-2xl border text-left transition-all cursor-pointer ${isSelected
+                                                ? "bg-slate-900 border-slate-900 text-white shadow-md scale-[1.02] ring-2 ring-slate-900/10"
+                                                : "bg-white border-slate-200 text-slate-800 hover:border-slate-300 hover:shadow-sm hover:scale-[1.01]"
+                                            }`}
+                                    >
+                                        <div className="flex items-center justify-between w-full mb-2">
+                                            <span
+                                                className="text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase tracking-wider"
+                                                style={{
+                                                    backgroundColor: isSelected ? "rgba(255,255,255,0.2)" : `${color}18`,
+                                                    color: isSelected ? "#FFFFFF" : color,
+                                                }}
+                                            >
+                                                {node.category}
+                                            </span>
+                                            <span
+                                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                                style={{
+                                                    backgroundColor: isSelected ? "rgba(255,255,255,0.15)" : `${demandColor(node.market_demand)}15`,
+                                                    color: isSelected ? "#FFFFFF" : demandColor(node.market_demand),
+                                                }}
+                                            >
+                                                {node.market_demand}%
+                                            </span>
+                                        </div>
+                                        <span className="font-bold text-xs truncate w-full">{node.name}</span>
+                                        <div className="w-full mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] opacity-75">
+                                            <span>Maturity</span>
+                                            <span className="font-semibold">{node.maturity}%</span>
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Inline non-blocking category legend at bottom of 2D map */}
+                <div id="tour-legend" className="mt-8 pt-4 border-t border-slate-200/70 flex items-center gap-3 sm:gap-4 flex-wrap text-slate-500">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Categories:</span>
+                    {[
+                        { label: "Repo", color: CATEGORY_COLORS.repo },
+                        { label: "Language", color: CATEGORY_COLORS.language },
+                        { label: "Concept", color: CATEGORY_COLORS.concept },
+                        { label: "Frontend", color: CATEGORY_COLORS.frontend },
+                        { label: "Backend", color: CATEGORY_COLORS.backend },
+                        { label: "ML/AI", color: CATEGORY_COLORS.ml },
+                        { label: "DevOps", color: CATEGORY_COLORS.devops },
+                    ].map((item) => (
+                        <div key={item.label} className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                            <span className="text-[10px] font-semibold text-slate-600">{item.label}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
     )
@@ -960,8 +1183,10 @@ export default function KnowledgeGraph3D() {
     const marketOverlay = useGraphStore((state) => state.marketOverlay)
     const selectedNode = useGraphStore((state) => state.selectedNode)
     const setSelectedNode = useGraphStore((state) => state.setSelectedNode)
+    const globalWebgl = useGraphStore((state) => state.webglSupported)
+    const setGlobalWebgl = useGraphStore((state) => state.setWebglSupported)
     const pointerDownPos = useRef({ x: 0, y: 0 })
-    const [webglSupported, setWebglSupported] = useState<boolean | null>(null)
+    const [webglSupported, setWebglSupported] = useState<boolean | null>(globalWebgl)
 
     useEffect(() => {
         try {
@@ -970,13 +1195,16 @@ export default function KnowledgeGraph3D() {
                 canvas.getContext("webgl2") ||
                 canvas.getContext("webgl") ||
                 canvas.getContext("experimental-webgl")
-            setWebglSupported(!!gl)
+            const supported = !!gl
+            setWebglSupported(supported)
+            setGlobalWebgl(supported)
         } catch {
             setWebglSupported(false)
+            setGlobalWebgl(false)
         }
-    }, [])
+    }, [setGlobalWebgl])
 
-    if (webglSupported === false) {
+    if (webglSupported === false || globalWebgl === false) {
         return <WebGLFallbackView />
     }
 
@@ -1050,40 +1278,40 @@ export default function KnowledgeGraph3D() {
                 {/* Market demand legend (HTML overlay, must not swallow OrbitControls) */}
                 {marketOverlay && (
                     <div className={`pointer-events-none absolute right-3 ${selectedNode ? "top-16" : "top-3"} z-10 select-none sm:right-4 ${selectedNode ? "sm:top-16" : "sm:top-4"}`}>
-                    <div className="rounded-xl border border-slate-200 bg-white/85 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
-                        <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-500">
-                            MARKET DEMAND
-                        </p>
-                        <ul className="mt-2 space-y-1.5 text-[11px] font-medium text-slate-600">
-                            <li className="flex items-center gap-2">
-                                <span className="h-2.5 w-2.5 rounded-full bg-[#EF4444] ring-2 ring-red-100" />
-                                <span>High</span>
-                                <span className="ml-auto pl-3 text-[10px] font-normal text-slate-400">
-                                    ≥80%
-                                </span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B] ring-2 ring-amber-100" />
-                                <span>Medium</span>
-                                <span className="ml-auto pl-3 text-[10px] font-normal text-slate-400">
-                                    60–79%
-                                </span>
-                            </li>
-                            <li className="flex items-center gap-2">
-                                <span className="h-2.5 w-2.5 rounded-full bg-[#64748B] ring-2 ring-slate-100" />
-                                <span>Low</span>
-                                <span className="ml-auto pl-3 text-[10px] font-normal text-slate-400">
-                                    {"<60%"}
-                                </span>
-                            </li>
-                        </ul>
-                        <p className="mt-2 border-t border-slate-100 pt-1.5 text-[10px] leading-snug text-slate-400">
-                            Badge on each node shows demand %
-                        </p>
+                        <div className="rounded-xl border border-slate-200 bg-white/85 px-3.5 py-2.5 shadow-sm backdrop-blur-sm">
+                            <p className="text-[10px] font-semibold tracking-[0.14em] text-slate-500">
+                                MARKET DEMAND
+                            </p>
+                            <ul className="mt-2 space-y-1.5 text-[11px] font-medium text-slate-600">
+                                <li className="flex items-center gap-2">
+                                    <span className="h-2.5 w-2.5 rounded-full bg-[#EF4444] ring-2 ring-red-100" />
+                                    <span>High</span>
+                                    <span className="ml-auto pl-3 text-[10px] font-normal text-slate-400">
+                                        ≥80%
+                                    </span>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span className="h-2.5 w-2.5 rounded-full bg-[#F59E0B] ring-2 ring-amber-100" />
+                                    <span>Medium</span>
+                                    <span className="ml-auto pl-3 text-[10px] font-normal text-slate-400">
+                                        60–79%
+                                    </span>
+                                </li>
+                                <li className="flex items-center gap-2">
+                                    <span className="h-2.5 w-2.5 rounded-full bg-[#64748B] ring-2 ring-slate-100" />
+                                    <span>Low</span>
+                                    <span className="ml-auto pl-3 text-[10px] font-normal text-slate-400">
+                                        {"<60%"}
+                                    </span>
+                                </li>
+                            </ul>
+                            <p className="mt-2 border-t border-slate-100 pt-1.5 text-[10px] leading-snug text-slate-400">
+                                Badge on each node shows demand %
+                            </p>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
         </WebGLErrorBoundary>
     )
 }

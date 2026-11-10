@@ -3,6 +3,7 @@ import os
 import json
 
 from config import settings
+from services.tech_directory import infer_tech_relationships
 
 
 # In-memory fallback for demo mode (when Neo4j is not configured)
@@ -53,6 +54,11 @@ def get_driver():
 
 def save_graph(nodes: List[Dict], links: List[Dict]):
     """Save graph data to Neo4j or in-memory store and file."""
+    # Ensure natural inter-technology relationships are linked
+    extra_links = infer_tech_relationships(nodes, links)
+    if extra_links:
+        links = list(links) + extra_links
+
     driver = get_driver()
     if driver is None:
         _graph_store["nodes"] = nodes
@@ -104,8 +110,7 @@ def get_graph() -> Dict:
     """Retrieve full graph data from Neo4j or in-memory store."""
     driver = get_driver()
     if driver is None:
-        if not _graph_store.get("nodes"):
-            _load_local_graph()
+        _load_local_graph()
         return _graph_store
 
     with driver.session() as session:

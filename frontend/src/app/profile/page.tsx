@@ -8,7 +8,8 @@ import { getUserProfile, updateUserProfile } from "@/lib/api"
 import {
     Github, Linkedin, Sparkles, ExternalLink, RefreshCw, CheckCircle2,
     AlertCircle, Search, Layers, Box, Cpu, ArrowLeft, ArrowRight,
-    LogOut, User, ShieldCheck, Code, Globe, Terminal, Award
+    LogOut, User, ShieldCheck, Code, Globe, Terminal, Award,
+    Code2, FileText, UploadCloud
 } from "lucide-react"
 
 const ease = [0.22, 1, 0.36, 1]
@@ -105,6 +106,12 @@ export default function ProfilePage() {
                         github_connected: Boolean(data.github_connected),
                         linkedin_connected: Boolean(data.linkedin_connected),
                         linkedin_username: data.linkedin_username || user?.linkedin_username || "",
+                        leetcode_username: data.leetcode_username || user?.leetcode_username || "",
+                        leetcode_connected: Boolean(data.leetcode_connected),
+                        leetcode_stats: data.leetcode_stats || user?.leetcode_stats || null,
+                        resume_connected: Boolean(data.resume_connected),
+                        resume_filename: data.resume_filename || user?.resume_filename || "",
+                        resume_skills: data.resume_skills || user?.resume_skills || [],
                         onboarding_completed: Boolean(data.onboarding_completed),
                     })
                 }
@@ -147,7 +154,9 @@ export default function ProfilePage() {
                 selectedSource === "all" ||
                 (selectedSource === "both" && s.source === "both") ||
                 (selectedSource === "github" && (s.source === "github" || s.source === "both")) ||
-                (selectedSource === "linkedin" && (s.source === "linkedin" || s.source === "both"))
+                (selectedSource === "linkedin" && (s.source === "linkedin" || s.source === "both")) ||
+                (selectedSource === "leetcode" && (s.source === "leetcode" || s.source === "both")) ||
+                (selectedSource === "resume" && (s.source === "resume" || s.source === "both"))
 
             return matchesSearch && matchesCat && matchesSource
         })
@@ -163,8 +172,15 @@ export default function ProfilePage() {
 
     const ghConnected = Boolean(profileData?.github_connected || user?.github_connected)
     const liConnected = Boolean(profileData?.linkedin_connected || user?.linkedin_connected)
+    const lcConnected = Boolean(profileData?.leetcode_connected || user?.leetcode_connected)
+    const resumeConnected = Boolean(profileData?.resume_connected || user?.resume_connected)
+
     const ghUser = profileData?.github_username || profileData?.github_profile?.username || user?.github_username || ""
     const liUser = profileData?.linkedin_username || user?.linkedin_username || ""
+    const lcUser = profileData?.leetcode_username || user?.leetcode_username || ""
+    const lcStats = profileData?.leetcode_stats || user?.leetcode_stats || null
+    const resumeFilename = profileData?.resume_filename || user?.resume_filename || "Resume.pdf"
+    const resumeSkills = profileData?.resume_skills || user?.resume_skills || []
 
     if (loading) {
         return (
@@ -509,6 +525,192 @@ export default function ProfilePage() {
                                 </div>
                             )}
                         </motion.div>
+
+                        {/* LeetCode Account Card */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.2, ease }}
+                            className={`rounded-3xl p-6 border transition-all ${
+                                lcConnected
+                                    ? "bg-white border-slate-200 shadow-md shadow-slate-100"
+                                    : "bg-slate-50/70 border-dashed border-slate-300"
+                            }`}
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-sm">
+                                        <Code2 className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-base">LeetCode</h3>
+                                        <p className="text-xs text-slate-500 font-medium">Algorithmic Problem-Solving & DSA</p>
+                                    </div>
+                                </div>
+                                <span
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                        lcConnected
+                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                                    }`}
+                                >
+                                    <span className={`w-2 h-2 rounded-full ${lcConnected ? "bg-emerald-500" : "bg-slate-400"}`} />
+                                    {lcConnected ? "Connected" : "Not connected"}
+                                </span>
+                            </div>
+
+                            {lcConnected ? (
+                                <div className="space-y-3">
+                                    <div className="p-3.5 rounded-2xl bg-amber-50/50 border border-amber-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-xs font-bold text-amber-900">@{lcUser}</span>
+                                        </div>
+                                        {lcStats?.ranking && (
+                                            <span className="text-xs font-semibold text-amber-700">
+                                                Rank: #{lcStats.ranking.toLocaleString()}
+                                            </span>
+                                        )}
+                                    </div>
+
+                                    {lcStats && (
+                                        <div className="grid grid-cols-4 gap-2 text-center">
+                                            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100">
+                                                <p className="text-[10px] uppercase font-bold text-slate-400">Total</p>
+                                                <p className="text-xs font-bold text-slate-800">{lcStats.total_solved || 0}</p>
+                                            </div>
+                                            <div className="p-2 rounded-xl bg-emerald-50/50 border border-emerald-100">
+                                                <p className="text-[10px] uppercase font-bold text-emerald-600">Easy</p>
+                                                <p className="text-xs font-bold text-emerald-700">{lcStats.easy_solved || 0}</p>
+                                            </div>
+                                            <div className="p-2 rounded-xl bg-amber-50/50 border border-amber-100">
+                                                <p className="text-[10px] uppercase font-bold text-amber-600">Medium</p>
+                                                <p className="text-xs font-bold text-amber-700">{lcStats.medium_solved || 0}</p>
+                                            </div>
+                                            <div className="p-2 rounded-xl bg-red-50/50 border border-red-100">
+                                                <p className="text-[10px] uppercase font-bold text-red-600">Hard</p>
+                                                <p className="text-xs font-bold text-red-700">{lcStats.hard_solved || 0}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center justify-between pt-2">
+                                        <div className="text-xs text-slate-500 font-medium">
+                                            DSA Concepts Mapped to Graph
+                                        </div>
+                                        <Link
+                                            href="/setup"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                                        >
+                                            <RefreshCw className="w-3 h-3" /> Re-sync LeetCode
+                                        </Link>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <p className="text-xs text-slate-500 font-medium mb-4 leading-relaxed">
+                                        Connect your LeetCode profile to prove your algorithms, data structures, and problem-solving mastery in your graph.
+                                    </p>
+                                    <Link
+                                        href="/setup"
+                                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-sm transition-colors"
+                                    >
+                                        <Code2 className="w-3.5 h-3.5" /> Connect LeetCode
+                                    </Link>
+                                </div>
+                            )}
+                        </motion.div>
+
+                        {/* Resume Document Card */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 15 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.25, ease }}
+                            className={`rounded-3xl p-6 border transition-all ${
+                                resumeConnected
+                                    ? "bg-white border-slate-200 shadow-md shadow-slate-100"
+                                    : "bg-slate-50/70 border-dashed border-slate-300"
+                            }`}
+                        >
+                            <div className="flex items-start justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-700 text-white flex items-center justify-center shadow-sm">
+                                        <FileText className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-slate-900 text-base">Resume & CV</h3>
+                                        <p className="text-xs text-slate-500 font-medium">Work History & Practical Skills</p>
+                                    </div>
+                                </div>
+                                <span
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
+                                        resumeConnected
+                                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                                    }`}
+                                >
+                                    <span className={`w-2 h-2 rounded-full ${resumeConnected ? "bg-emerald-500" : "bg-slate-400"}`} />
+                                    {resumeConnected ? "Connected" : "Not uploaded"}
+                                </span>
+                            </div>
+
+                            {resumeConnected ? (
+                                <div className="space-y-3">
+                                    <div className="p-3.5 rounded-2xl bg-emerald-50/50 border border-emerald-100 flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <FileText className="w-4 h-4 text-emerald-600" />
+                                            <span className="text-xs font-bold text-emerald-900 truncate max-w-[170px]">
+                                                {resumeFilename}
+                                            </span>
+                                        </div>
+                                        <span className="text-xs font-semibold text-emerald-700">
+                                            {resumeSkills.length || "Verified"} skills
+                                        </span>
+                                    </div>
+
+                                    {resumeSkills.length > 0 && (
+                                        <div className="flex flex-wrap gap-1">
+                                            {resumeSkills.slice(0, 6).map((s: any) => {
+                                                const sName = typeof s === "object" ? s.name : String(s)
+                                                return (
+                                                    <span key={sName} className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium">
+                                                        {sName}
+                                                    </span>
+                                                )
+                                            })}
+                                            {resumeSkills.length > 6 && (
+                                                <span className="text-[10px] px-1.5 py-0.5 rounded-md text-slate-400 font-medium">
+                                                    +{resumeSkills.length - 6} more
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="flex items-center justify-between pt-2">
+                                        <div className="text-xs text-slate-500 font-medium">
+                                            Evidence merged into Graph
+                                        </div>
+                                        <Link
+                                            href="/setup"
+                                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors"
+                                        >
+                                            <RefreshCw className="w-3 h-3" /> Re-upload Resume
+                                        </Link>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div>
+                                    <p className="text-xs text-slate-500 font-medium mb-4 leading-relaxed">
+                                        Upload your resume (PDF) to extract verified technologies, frameworks, projects, and work experience.
+                                    </p>
+                                    <Link
+                                        href="/setup"
+                                        className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-colors"
+                                    >
+                                        <UploadCloud className="w-3.5 h-3.5" /> Upload Resume
+                                    </Link>
+                                </div>
+                            )}
+                        </motion.div>
                     </div>
                 </div>
 
@@ -560,6 +762,26 @@ export default function ProfilePage() {
                                 >
                                     <Github className="w-3 h-3" />
                                     <span>Code</span>
+                                </button>
+                                <button
+                                    onClick={() => setSelectedSource("leetcode")}
+                                    className={`px-2.5 py-1 text-xs rounded-lg font-bold flex items-center gap-1 transition-all ${
+                                        selectedSource === "leetcode" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+                                    }`}
+                                    title="LeetCode problem-solving"
+                                >
+                                    <Code2 className="w-3 h-3" />
+                                    <span>LeetCode</span>
+                                </button>
+                                <button
+                                    onClick={() => setSelectedSource("resume")}
+                                    className={`px-2.5 py-1 text-xs rounded-lg font-bold flex items-center gap-1 transition-all ${
+                                        selectedSource === "resume" ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+                                    }`}
+                                    title="Resume extracted"
+                                >
+                                    <FileText className="w-3 h-3" />
+                                    <span>Resume</span>
                                 </button>
                                 <button
                                     onClick={() => setSelectedSource("linkedin")}

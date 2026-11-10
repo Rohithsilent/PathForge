@@ -254,7 +254,7 @@ with ZipFile(SRC,'r') as zin:
     add_shape(r,sid,'Demo readiness score',6.22,2.00,3.02,1.55,'58%\nCareer readiness\nTarget role: ML Engineer',fill='E9E2F1',line='7030A0',color='1F1F1F',size=1800,bold=True);sid+=1
     add_shape(r,sid,'Demo prioritized gaps',6.22,3.78,3.02,1.99,'PRIORITY GAPS\nPyTorch\nscikit-learn\nDocker\nTensorFlow',fill='EDF1F7',line='3A5F8B',color='1F1F1F',size=1450,bold=False,align='l');sid+=1
     add_text(r,sid,'Graph link note',.75,5.80,5.25,.30,'Repository nodes connect to technologies detected in project evidence.',size=1100,color='4B5563',bold=False,align='l');sid+=1
-    add_text(r,sid,'Demo output note',.68,6.15,8.55,.45,'Seeded demo profile (Aryan Sharma): illustrative output from backend/seed_data.py; not a measured user study.',size=1150,color='4B5563',bold=False,align='l');sid+=1
+    add_text(r,sid,'Demo output note',.68,6.15,8.55,.45,'Seeded demo profile (Tony Stark): illustrative output from backend/seed_data.py; not a measured user study.',size=1150,color='4B5563',bold=False,align='l');sid+=1
     # Place graph links over the graph panel background but below its nodes and labels.
     tree=r.find('p:cSld/p:spTree',NS); kids=list(tree); fixed=kids[:2]; rest=kids[2:]
     def nm(el):

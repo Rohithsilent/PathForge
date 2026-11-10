@@ -1,13 +1,25 @@
 # Carefully designed demo story — not random data.
-# Aryan is strong in frontend, weak in ML — gap is visually obvious in the graph.
+# Tony is strong in frontend, weak in ML — gap is visually obvious in the graph.
 # Adding PyTorch in What-If jumps readiness 58% → 74%.
 
 DEMO_USER = {
-    "name": "Aryan Sharma",
-    "username": "aryan-dev",
+    "name": "Tony Stark",
+    "username": "tonystark",
     "target_role": "ML Engineer",
     "career_readiness": 58.0,
-    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=aryan",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=TonyStark&facialHair=beardLight&facialHairProbability=100&hairColor=2c1b18&facialHairColor=2c1b18&accessories=sunglasses&accessoriesProbability=100&backgroundColor=ffedd5",
+    "leetcode_username": "tonystark",
+    "leetcode_connected": True,
+    "leetcode_stats": {
+        "total_solved": 240,
+        "easy_solved": 65,
+        "medium_solved": 140,
+        "hard_solved": 35,
+        "ranking": 42100,
+    },
+    "resume_connected": True,
+    "resume_filename": "Tony_Stark_CV.pdf",
+    "resume_skills": ["Python", "FastAPI", "React", "TypeScript", "Next.js", "Docker", "Node.js"],
 }
 
 DEMO_REPOS = [
@@ -74,6 +86,9 @@ DEMO_NODES = [
     {"id": "ml-roadmap", "name": "ML Roadmap",     "category": "concept",  "maturity": 40, "market_demand": 60, "val": 4.0, "source": "notion"},
     {"id": "sys-design", "name": "System Design",  "category": "concept",  "maturity": 35, "market_demand": 88, "val": 3.5, "source": "notion"},
     {"id": "meta-cert",  "name": "Meta Frontend",  "category": "cert",     "maturity": 100, "market_demand": 85, "val": 10.0, "source": "cert"},
+    {"id": "leetcode:tonystark", "name": "LeetCode (@tonystark)", "category": "cert", "maturity": 85, "market_demand": 92, "val": 8.0, "source": "leetcode"},
+    {"id": "binary-search", "name": "Binary Search", "category": "concept", "maturity": 78, "market_demand": 85, "val": 6.5, "source": "leetcode"},
+    {"id": "source:resume", "name": "Resume (Tony_Stark_CV.pdf)", "category": "cert", "maturity": 90, "market_demand": 88, "val": 7.5, "source": "resume"},
     {"id": "repo:orbit-dashboard", "name": "orbit-dashboard", "category": "repo", "maturity": 74, "market_demand": 78, "val": 7.4, "source": "github"},
     {"id": "repo:studyhub-api", "name": "studyhub-api", "category": "repo", "maturity": 62, "market_demand": 70, "val": 6.2, "source": "github"},
     {"id": "repo:digit-lab", "name": "digit-lab", "category": "repo", "maturity": 38, "market_demand": 64, "val": 5.0, "source": "github"},
@@ -117,6 +132,10 @@ DEMO_LINKS = [
     {"source": "repo:digit-lab", "target": "numpy",   "type": "WRITTEN_IN", "strength": 0.80},
     {"source": "repo:fastapi-notes", "target": "python",  "type": "WRITTEN_IN", "strength": 0.95},
     {"source": "repo:fastapi-notes", "target": "fastapi", "type": "WRITTEN_IN", "strength": 0.90},
+    {"source": "leetcode:tonystark", "target": "binary-search", "type": "SOLVED", "strength": 0.85},
+    {"source": "leetcode:tonystark", "target": "python", "type": "CODED_IN", "strength": 0.80},
+    {"source": "source:resume", "target": "python", "type": "VALIDATES", "strength": 0.90},
+    {"source": "source:resume", "target": "react", "type": "VALIDATES", "strength": 0.90},
 ]
 
 DEMO_GAPS = [
