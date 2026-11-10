@@ -35,6 +35,20 @@ export default function Topbar() {
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
+    // Prevent background scrolling when mobile menu is open
+    useEffect(() => {
+        if (mobileMenuOpen) {
+            const originalOverflow = document.body.style.overflow
+            const originalTouchAction = document.body.style.touchAction
+            document.body.style.overflow = "hidden"
+            document.body.style.touchAction = "none"
+            return () => {
+                document.body.style.overflow = originalOverflow
+                document.body.style.touchAction = originalTouchAction
+            }
+        }
+    }, [mobileMenuOpen])
+
     return (
         <>
             <div className="h-16 md:h-20 bg-transparent flex items-center justify-between px-4 md:px-8">
@@ -148,22 +162,31 @@ export default function Topbar() {
             {mobileMenuOpen && (
                 <>
                     <div
-                        className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm transition-opacity"
+                        className="fixed inset-0 bg-black/40 z-40 md:hidden backdrop-blur-sm transition-opacity touch-none"
                         onClick={() => setMobileMenuOpen(false)}
+                        onTouchMove={(e) => e.preventDefault()}
                     />
-                    <div className="fixed top-[72px] left-4 right-4 z-50 md:hidden bg-white/95 backdrop-blur-xl border border-slate-200/50 shadow-2xl rounded-2xl animate-in fade-in zoom-in-95 slide-in-from-top-6 duration-200 overflow-hidden">
+                    <div className="fixed top-[72px] left-4 right-4 max-h-[calc(100dvh-88px)] z-50 md:hidden bg-white/95 backdrop-blur-xl border border-slate-200/50 shadow-2xl rounded-2xl animate-in fade-in zoom-in-95 slide-in-from-top-6 duration-200 overflow-y-auto overscroll-contain touch-pan-y">
                         <div className="p-5 space-y-4">
                             {/* Profile header */}
                             <div className="flex items-center gap-3 pb-4 border-b border-slate-100/60">
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-inner">
-                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                                        <circle cx="12" cy="7" r="4" />
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-bold text-slate-900">{displayName}</p>
-                                    <p className="text-[11px] text-slate-400 font-medium">{displayRole} · PathForge</p>
+                                {user?.avatar ? (
+                                    <img
+                                        src={user.avatar}
+                                        alt={displayName}
+                                        className="w-12 h-12 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
+                                    />
+                                ) : (
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-400 to-orange-600 flex items-center justify-center shadow-inner shrink-0">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                                            <circle cx="12" cy="7" r="4" />
+                                        </svg>
+                                    </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-bold text-slate-900 truncate">{displayName}</p>
+                                    <p className="text-[11px] text-slate-400 font-medium truncate">{displayRole} · PathForge</p>
                                 </div>
                             </div>
 
