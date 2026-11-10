@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { firebaseSignOut } from '@/lib/firebase'
 
 interface AuthUser {
     name: string
@@ -112,6 +113,9 @@ export const useAuthStore = create<AuthState>()(
                     localStorage.removeItem('token')
                     localStorage.removeItem('pathforge-auth')
                     sessionStorage.clear()
+                    try {
+                        firebaseSignOut().catch(() => {})
+                    } catch {}
                 }
                 set({ user: null, isDemo: false, githubProfile: null })
             },
