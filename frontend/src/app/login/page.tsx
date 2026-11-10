@@ -24,34 +24,47 @@ export default function LoginPage() {
     const firebaseAvailable = isFirebaseConfigured()
 
     const processUserLogin = async (idToken: string) => {
-        const { access_token, user } = await authFirebase(idToken)
-        localStorage.setItem("token", access_token)
+        setLoading("google")
+        setError("")
+        try {
+            console.log("Exchanging Firebase token with backend...")
+            const { access_token, user } = await authFirebase(idToken)
+            console.log("Backend auth successful:", user.email || user.username)
+            localStorage.setItem("token", access_token)
 
-        const isReturning = Boolean(
-            user.onboarding_completed ||
-            user.github_connected ||
-            user.linkedin_connected
-        )
+            const isReturning = Boolean(
+                user.onboarding_completed ||
+                user.github_connected ||
+                user.linkedin_connected
+            )
 
-        setUser({
-            name: user.name,
-            username: user.username,
-            email: user.email,
-            avatar: user.avatar,
-            target_role: user.target_role || "Full Stack Developer",
-            auth_provider: "google",
-            github_username: user.github_username || user.github_username_hint || "",
-            github_connected: Boolean(user.github_connected),
-            linkedin_connected: Boolean(user.linkedin_connected),
-            linkedin_username: user.linkedin_username || "",
-            onboarding_completed: isReturning,
-        })
-        setIsDemo(false)
+            setUser({
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar,
+                target_role: user.target_role || "Full Stack Developer",
+                auth_provider: "google",
+                github_username: user.github_username || user.github_username_hint || "",
+                github_connected: Boolean(user.github_connected),
+                linkedin_connected: Boolean(user.linkedin_connected),
+                linkedin_username: user.linkedin_username || "",
+                onboarding_completed: isReturning,
+            })
+            setIsDemo(false)
 
-        if (isReturning) {
-            router.push("/dashboard")
-        } else {
-            router.push("/setup")
+            if (isReturning) {
+                console.log("Navigating to /dashboard...")
+                router.push("/dashboard")
+            } else {
+                console.log("Navigating to /setup...")
+                router.push("/setup")
+            }
+        } catch (err: any) {
+            console.error("processUserLogin error:", err)
+            const detail = err.response?.data?.detail || err.message || "Server authentication failed"
+            setError(`Login failed: ${detail}`)
+            setLoading(null)
         }
     }
 
@@ -62,18 +75,15 @@ export default function LoginPage() {
         // 1. Primary listener: catches redirect sign-in as soon as Firebase finishes rehydrating!
         const unsubscribe = onAuthUserChange(async (firebaseUser) => {
             if (!isMounted || !firebaseUser) return
-            const currentToken = typeof window !== "undefined" ? localStorage.getItem("token") : null
-            if (!currentToken) {
-                setLoading("google")
-                try {
-                    const idToken = await firebaseUser.getIdToken()
-                    await processUserLogin(idToken)
-                } catch (err: any) {
-                    console.error("Auto login error:", err)
-                    if (isMounted) {
-                        setError(`Sign-in failed: ${err.message || "Failed to authenticate"}`)
-                        setLoading(null)
-                    }
+            console.log("Firebase user detected:", firebaseUser.email)
+            try {
+                const idToken = await firebaseUser.getIdToken()
+                await processUserLogin(idToken)
+            } catch (err: any) {
+                console.error("Auto login error:", err)
+                if (isMounted) {
+                    setError(`Sign-in failed: ${err.message || "Failed to authenticate"}`)
+                    setLoading(null)
                 }
             }
         })
@@ -82,7 +92,7 @@ export default function LoginPage() {
         getGoogleRedirectResult()
             .then(async (result) => {
                 if (result && isMounted) {
-                    setLoading("google")
+                    console.log("Redirect result detected:", result.user.email)
                     const idToken = await result.user.getIdToken()
                     await processUserLogin(idToken)
                 }
@@ -102,12 +112,12 @@ export default function LoginPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
-    // Redirect if already logged in
+    // Redirect if already logged in with a valid user profile
     useEffect(() => {
         const token = localStorage.getItem("token")
-        if (token) {
-            const currentUser = useAuthStore.getState().user
-            if (currentUser?.onboarding_completed || currentUser?.github_connected || currentUser?.linkedin_connected) {
+        const currentUser = useAuthStore.getState().user
+        if (token && currentUser) {
+            if (currentUser.onboarding_completed || currentUser.github_connected || currentUser.linkedin_connected) {
                 router.replace("/dashboard")
             } else {
                 router.replace("/setup")
