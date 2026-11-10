@@ -19,7 +19,16 @@
  *   NEXT_PUBLIC_FIREBASE_APP_ID=...
  */
 import { initializeApp, getApps, FirebaseApp } from "firebase/app"
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, Auth, UserCredential } from "firebase/auth"
+import {
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
+    signOut,
+    Auth,
+    UserCredential
+} from "firebase/auth"
 
 const firebaseConfig = {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
@@ -51,6 +60,22 @@ googleProvider.setCustomParameters({ prompt: "select_account" })
  */
 export const signInWithGoogle = async (): Promise<UserCredential> => {
     return signInWithPopup(auth, googleProvider)
+}
+
+/**
+ * Sign in with Google full-page redirect.
+ * Bypasses all browser pop-up blockers, ad blockers, and third-party cookie restrictions.
+ */
+export const signInWithGoogleRedirect = async (): Promise<void> => {
+    return signInWithRedirect(auth, googleProvider)
+}
+
+/**
+ * Process the redirect result after returning from Google Sign-In.
+ */
+export const getGoogleRedirectResult = async (): Promise<UserCredential | null> => {
+    if (typeof window === "undefined" || !auth) return null
+    return getRedirectResult(auth)
 }
 
 /**

@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { signInWithGoogle, isFirebaseConfigured } from "@/lib/firebase"
+import { signInWithGoogle, signInWithGoogleRedirect, getGoogleRedirectResult, isFirebaseConfigured } from "@/lib/firebase"
 import { authFirebase } from "@/lib/api"
 import { useAuthStore } from "@/stores/authStore"
 import { Loader2, AlertCircle, Sparkles, Github, ArrowRight } from "lucide-react"
@@ -22,6 +22,57 @@ export default function LoginPage() {
     const [loading, setLoading] = useState<"google" | "github" | null>(null)
     const [error, setError] = useState("")
     const firebaseAvailable = isFirebaseConfigured()
+
+    const processUserLogin = async (idToken: string) => {
+        const { access_token, user } = await authFirebase(idToken)
+        localStorage.setItem("token", access_token)
+
+        const isReturning = Boolean(
+            user.onboarding_completed ||
+            user.github_connected ||
+            user.linkedin_connected
+        )
+
+        setUser({
+            name: user.name,
+            username: user.username,
+            email: user.email,
+            avatar: user.avatar,
+            target_role: user.target_role || "Full Stack Developer",
+            auth_provider: "google",
+            github_username: user.github_username || user.github_username_hint || "",
+            github_connected: Boolean(user.github_connected),
+            linkedin_connected: Boolean(user.linkedin_connected),
+            linkedin_username: user.linkedin_username || "",
+            onboarding_completed: isReturning,
+        })
+        setIsDemo(false)
+
+        if (isReturning) {
+            router.push("/dashboard")
+        } else {
+            router.push("/setup")
+        }
+    }
+
+    // Process Google redirect result (if returning from redirect sign-in)
+    useEffect(() => {
+        getGoogleRedirectResult()
+            .then(async (result) => {
+                if (result) {
+                    setLoading("google")
+                    const idToken = await result.user.getIdToken()
+                    await processUserLogin(idToken)
+                }
+            })
+            .catch((err: any) => {
+                console.error("Google redirect result error:", err)
+                if (err.code !== "auth/popup-closed-by-user") {
+                    setError(`Google sign-in error: ${err.message || "Failed to complete sign-in"}`)
+                }
+            })
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     // Redirect if already logged in
     useEffect(() => {
@@ -46,46 +97,44 @@ export default function LoginPage() {
         try {
             const result = await signInWithGoogle()
             const idToken = await result.user.getIdToken()
-            const { access_token, user } = await authFirebase(idToken)
-            localStorage.setItem("token", access_token)
-            
-            const isReturning = Boolean(
-                user.onboarding_completed ||
-                user.github_connected ||
-                user.linkedin_connected
-            )
-
-            setUser({
-                name: user.name,
-                username: user.username,
-                email: user.email,
-                avatar: user.avatar,
-                target_role: user.target_role || "Full Stack Developer",
-                auth_provider: "google",
-                github_username: user.github_username || user.github_username_hint || "",
-                github_connected: Boolean(user.github_connected),
-                linkedin_connected: Boolean(user.linkedin_connected),
-                linkedin_username: user.linkedin_username || "",
-                onboarding_completed: isReturning,
-            })
-            setIsDemo(false)
-
-            if (isReturning) {
-                router.push("/dashboard")
-            } else {
-                router.push("/setup")
-            }
+            await processUserLogin(idToken)
         } catch (err: any) {
             console.error("Google login failed", err)
-            if (err.code === "auth/popup-closed-by-user") {
+            if (err.code === "auth/popup-blocked") {
+                // Pop-up blocked by browser, ad-blocker, or cross-origin restrictions — smoothly fallback to redirect
+                setError("Pop-up blocked by browser. Redirecting directly to Google sign-in...")
+                try {
+                    await signInWithGoogleRedirect()
+                    return
+                } catch (redirectErr: any) {
+                    setError(`Redirect failed: ${redirectErr.message}`)
+                    setLoading(null)
+                }
+            } else if (err.code === "auth/popup-closed-by-user") {
                 setError("Sign-in cancelled.")
+                setLoading(null)
             } else if (err.code === "auth/configuration-not-found") {
                 setError("Firebase Authentication is not enabled. Go to Firebase Console → Authentication → Sign-in method → Enable Google.")
+                setLoading(null)
             } else {
                 const msg = err.response?.data?.detail || err.message || "Unknown error"
                 setError(`Google sign-in failed: ${msg}`)
+                setLoading(null)
             }
-        } finally {
+        }
+    }
+
+    const handleGoogleRedirectLogin = async () => {
+        if (!firebaseAvailable) {
+            setError("Firebase is not configured. Please add your Firebase environment variables.")
+            return
+        }
+        setLoading("google")
+        setError("")
+        try {
+            await signInWithGoogleRedirect()
+        } catch (err: any) {
+            setError(`Redirect error: ${err.message}`)
             setLoading(null)
         }
     }
@@ -182,6 +231,18 @@ export default function LoginPage() {
                                 )}
                                 <span>Continue with Google</span>
                             </motion.button>
+
+                            {/* Pop-up bypass / Direct redirect option */}
+                            <div className="text-center -mt-1 pb-1">
+                                <button
+                                    type="button"
+                                    onClick={handleGoogleRedirectLogin}
+                                    disabled={!!loading}
+                                    className="text-[11px] text-slate-400 hover:text-orange-600 transition-colors font-medium cursor-pointer"
+                                >
+                                    Pop-up blocked? <span className="underline font-bold text-slate-500 hover:text-orange-600">Sign in with direct redirect &rarr;</span>
+                                </button>
+                            </div>
 
                             {/* Divider */}
                             <div className="flex items-center gap-3 py-1">
