@@ -1,11 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from typing import List, Optional
+from jose import jwt
 
 from schemas.schemas import WhatIfRequest, WhatIfResponse
 from services.scoring_service import career_readiness, whatif_simulation
 from services.ai_service import generate_gap_explanations, generate_career_roadmap
 from services.graph_service import get_graph
 from seed_data import CAREER_ROLES
+from config import settings
 
 router = APIRouter(tags=["career"])
 
@@ -38,7 +40,7 @@ IMPLIED_SKILLS = {
 }
 
 
-def _readiness_components(target_role: str) -> dict:
+def _readiness_components(target_role: str, user_nodes: Optional[List[dict]] = None) -> dict:
     """Single source of truth for the readiness score.
 
     Used by both /career/readiness and /career/whatif so the number shown in
@@ -47,8 +49,9 @@ def _readiness_components(target_role: str) -> dict:
     role_data = CAREER_ROLES.get(target_role, CAREER_ROLES.get("Full Stack Developer", CAREER_ROLES[list(CAREER_ROLES.keys())[0]]))
     required = role_data["required"]
 
-    graph = get_graph()
-    user_nodes = graph.get("nodes", [])
+    if user_nodes is None:
+        graph = get_graph()
+        user_nodes = graph.get("nodes", [])
     user_skill_names_raw = [n["name"] for n in user_nodes if n.get("category") != "repo"]
 
     # Build expanded user skills set (lowercase for matching)
@@ -105,9 +108,28 @@ def _readiness_components(target_role: str) -> dict:
 async def get_career_readiness(
     target_role: str = "Full Stack Developer",
     provider: Optional[str] = None,
+    authorization: Optional[str] = Header(None),
 ):
     """Calculate career readiness score for a target role using REAL graph data."""
-    data = _readiness_components(target_role)
+    user_nodes = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            token = authorization.split(" ")[1]
+            payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            uid = payload.get("sub") or payload.get("username")
+            if uid:
+                from services import user_service
+                user_graph = user_service.get_user_graph(uid)
+                if not user_graph or not user_graph.get("nodes"):
+                    profile = user_service.get_user_profile(uid)
+                    if profile and (profile.get("github_repos") or profile.get("skills")):
+                        user_graph = user_service.reconstruct_graph_from_profile(profile)
+                if user_graph and user_graph.get("nodes"):
+                    user_nodes = user_graph["nodes"]
+        except Exception as e:
+            print(f"Error extracting user nodes for readiness: {e}")
+
+    data = _readiness_components(target_role, user_nodes=user_nodes)
     explanations = generate_gap_explanations(data["missing"], target_role, provider=provider)
     gaps = [
         {
@@ -135,14 +157,35 @@ async def get_career_readiness(
 
 
 @router.post("/whatif", response_model=WhatIfResponse)
-async def what_if_simulation(req: WhatIfRequest):
+async def what_if_simulation(
+    req: WhatIfRequest,
+    authorization: Optional[str] = Header(None)
+):
     """Simulate adding skills and show how readiness score changes."""
     simulated = [s.strip() for s in req.add_skills if s and s.strip()]
     if not simulated:
         raise HTTPException(status_code=400, detail="Provide at least one skill to simulate.")
 
+    user_nodes = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            token = authorization.split(" ")[1]
+            payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            uid = payload.get("sub") or payload.get("username")
+            if uid:
+                from services import user_service
+                user_graph = user_service.get_user_graph(uid)
+                if not user_graph or not user_graph.get("nodes"):
+                    profile = user_service.get_user_profile(uid)
+                    if profile and (profile.get("github_repos") or profile.get("skills")):
+                        user_graph = user_service.reconstruct_graph_from_profile(profile)
+                if user_graph and user_graph.get("nodes"):
+                    user_nodes = user_graph["nodes"]
+        except Exception as e:
+            print(f"Error extracting user nodes for whatif: {e}")
+
     target_role = req.target_role or "Full Stack Developer"
-    readiness = _readiness_components(target_role)
+    readiness = _readiness_components(target_role, user_nodes=user_nodes)
     current_score = readiness["score"]
     user_nodes = readiness["user_nodes"]
     skill_nodes = [n for n in user_nodes if n.get("category") != "repo"]
@@ -168,10 +211,32 @@ async def what_if_simulation(req: WhatIfRequest):
 async def get_roadmap(
     target_role: str = "Full Stack Developer",
     provider: Optional[str] = None,
+    authorization: Optional[str] = Header(None),
 ):
     """Generate a learning roadmap for a target career role."""
-    graph = get_graph()
-    current_skills = [n["name"] for n in graph.get("nodes", []) if n.get("category") != "repo"]
+    user_nodes = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            token = authorization.split(" ")[1]
+            payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            uid = payload.get("sub") or payload.get("username")
+            if uid:
+                from services import user_service
+                user_graph = user_service.get_user_graph(uid)
+                if not user_graph or not user_graph.get("nodes"):
+                    profile = user_service.get_user_profile(uid)
+                    if profile and (profile.get("github_repos") or profile.get("skills")):
+                        user_graph = user_service.reconstruct_graph_from_profile(profile)
+                if user_graph and user_graph.get("nodes"):
+                    user_nodes = user_graph["nodes"]
+        except Exception as e:
+            print(f"Error extracting user nodes for roadmap: {e}")
+
+    if user_nodes is None:
+        graph = get_graph()
+        user_nodes = graph.get("nodes", [])
+
+    current_skills = [n["name"] for n in user_nodes if n.get("category") != "repo"]
 
     # Get gaps
     role_data = CAREER_ROLES.get(target_role, CAREER_ROLES.get("Full Stack Developer", CAREER_ROLES[list(CAREER_ROLES.keys())[0]]))

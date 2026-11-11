@@ -136,6 +136,7 @@ export default function SetupPage() {
                     github_connected: true,
                     github_profile: profilePayload,
                     github_repos: result.repos || [],
+                    graph: result.graph,
                     onboarding_completed: true,
                 })
             } catch (err) {
@@ -180,6 +181,7 @@ export default function SetupPage() {
                     leetcode_username: cleanUser,
                     leetcode_connected: true,
                     leetcode_stats: result,
+                    graph: result.graph || useGraphStore.getState().graphData,
                     onboarding_completed: true,
                 })
             } catch (err) {
@@ -229,6 +231,7 @@ export default function SetupPage() {
                     resume_connected: true,
                     resume_filename: result.filename,
                     resume_skills: result.skills || [],
+                    graph: result.graph || useGraphStore.getState().graphData,
                     onboarding_completed: true,
                 })
             } catch (err) {
@@ -272,6 +275,7 @@ export default function SetupPage() {
                     linkedin_connected: true,
                     linkedin_skills: result.extracted.skills || [],
                     linkedin_roles: result.extracted.roles || [],
+                    graph: result.graph || useGraphStore.getState().graphData,
                     onboarding_completed: true,
                 })
             } catch (err) {

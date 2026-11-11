@@ -109,6 +109,7 @@ export default function Topbar() {
                             <img
                                 src={user.avatar}
                                 alt={displayName}
+                                referrerPolicy="no-referrer"
                                 className="w-9 h-9 rounded-xl object-cover border border-slate-200 shadow-xs"
                             />
                         ) : (
@@ -174,6 +175,7 @@ export default function Topbar() {
                                     <img
                                         src={user.avatar}
                                         alt={displayName}
+                                        referrerPolicy="no-referrer"
                                         className="w-12 h-12 rounded-xl object-cover border border-slate-200 shadow-sm shrink-0"
                                     />
                                 ) : (

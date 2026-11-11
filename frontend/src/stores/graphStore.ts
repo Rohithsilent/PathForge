@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface GraphNode {
     id: string
@@ -53,51 +54,61 @@ interface GraphState {
     setAnalysisEngine: (engine: AnalysisEngine) => void
 }
 
-export const useGraphStore = create<GraphState>((set) => ({
-    graphData: { nodes: [], links: [] },
-    selectedNode: null,
-    searchTerm: '',
-    filterCategory: 'all',
-    filterSource: 'all',
-    activeRepos: new Set<string>(),
-    marketOverlay: false,
-    recruiterMode: false,
-    showInsights: true,
-    copilotMode: false,
-    roadmapMode: false,
-    analysisEngine: 'ollama',
-    webglSupported: null,
-    setWebglSupported: (supported) => set({ webglSupported: supported }),
-    setGraphData: (data) => set({ graphData: data }),
-    setSelectedNode: (node) => set({ selectedNode: node }),
-    setSearchTerm: (term) => set({ searchTerm: term }),
-    setFilterCategory: (cat) => set({ filterCategory: cat }),
-    setFilterSource: (source) => set({ filterSource: source }),
-    toggleRepo: (repoName) => set((s) => {
-        const next = new Set(s.activeRepos)
-        if (next.has(repoName)) next.delete(repoName)
-        else next.add(repoName)
-        return { activeRepos: next }
-    }),
-    setActiveRepos: (repos) => set({ activeRepos: repos }),
-    clearRepoFilter: () => set({ activeRepos: new Set<string>() }),
-    toggleMarketOverlay: () => set((s) => s.marketOverlay
-        ? { marketOverlay: false }
-        : { marketOverlay: true, showInsights: false, recruiterMode: false, copilotMode: false, roadmapMode: false }),
-    toggleRecruiterMode: () => set((s) => s.recruiterMode
-        ? { recruiterMode: false }
-        : { recruiterMode: true, showInsights: false, marketOverlay: false, copilotMode: false, roadmapMode: false }),
-    toggleInsights: () => set((s) => s.showInsights
-        ? { showInsights: false }
-        : { showInsights: true, marketOverlay: false, recruiterMode: false, copilotMode: false, roadmapMode: false }),
-    toggleCopilotMode: () => set((s) => s.copilotMode
-        ? { copilotMode: false }
-        : { copilotMode: true, showInsights: false, marketOverlay: false, recruiterMode: false, roadmapMode: false }),
-    toggleRoadmapMode: () => set((s) => s.roadmapMode
-        ? { roadmapMode: false }
-        : { roadmapMode: true, showInsights: false, marketOverlay: false, recruiterMode: false, copilotMode: false }),
-    setAnalysisEngine: (engine) => set({ analysisEngine: engine }),
-}))
+export const useGraphStore = create<GraphState>()(
+    persist(
+        (set) => ({
+            graphData: { nodes: [], links: [] },
+            selectedNode: null,
+            searchTerm: '',
+            filterCategory: 'all',
+            filterSource: 'all',
+            activeRepos: new Set<string>(),
+            marketOverlay: false,
+            recruiterMode: false,
+            showInsights: true,
+            copilotMode: false,
+            roadmapMode: false,
+            analysisEngine: 'ollama',
+            webglSupported: null,
+            setWebglSupported: (supported) => set({ webglSupported: supported }),
+            setGraphData: (data) => set({ graphData: data }),
+            setSelectedNode: (node) => set({ selectedNode: node }),
+            setSearchTerm: (term) => set({ searchTerm: term }),
+            setFilterCategory: (cat) => set({ filterCategory: cat }),
+            setFilterSource: (source) => set({ filterSource: source }),
+            toggleRepo: (repoName) => set((s) => {
+                const next = new Set(s.activeRepos)
+                if (next.has(repoName)) next.delete(repoName)
+                else next.add(repoName)
+                return { activeRepos: next }
+            }),
+            setActiveRepos: (repos) => set({ activeRepos: repos }),
+            clearRepoFilter: () => set({ activeRepos: new Set<string>() }),
+            toggleMarketOverlay: () => set((s) => s.marketOverlay
+                ? { marketOverlay: false }
+                : { marketOverlay: true, showInsights: false, recruiterMode: false, copilotMode: false, roadmapMode: false }),
+            toggleRecruiterMode: () => set((s) => s.recruiterMode
+                ? { recruiterMode: false }
+                : { recruiterMode: true, showInsights: false, marketOverlay: false, copilotMode: false, roadmapMode: false }),
+            toggleInsights: () => set((s) => s.showInsights
+                ? { showInsights: false }
+                : { showInsights: true, marketOverlay: false, recruiterMode: false, copilotMode: false, roadmapMode: false }),
+            toggleCopilotMode: () => set((s) => s.copilotMode
+                ? { copilotMode: false }
+                : { copilotMode: true, showInsights: false, marketOverlay: false, recruiterMode: false, roadmapMode: false }),
+            toggleRoadmapMode: () => set((s) => s.roadmapMode
+                ? { roadmapMode: false }
+                : { roadmapMode: true, showInsights: false, marketOverlay: false, recruiterMode: false, copilotMode: false }),
+            setAnalysisEngine: (engine) => set({ analysisEngine: engine }),
+        }),
+        {
+            name: 'pathforge-graph',
+            partialize: (state) => ({
+                graphData: state.graphData,
+            }),
+        }
+    )
+)
 
 if (typeof window !== 'undefined') {
     (window as any).useGraphStore = useGraphStore

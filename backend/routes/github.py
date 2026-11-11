@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from typing import Optional
 
 from config import settings
@@ -58,7 +58,10 @@ from services.market_data import get_market_demand
 
 
 @router.post("/profile/analyze")
-async def analyze_github_profile(payload: GitHubProfileRequest):
+async def analyze_github_profile(
+    payload: GitHubProfileRequest,
+    authorization: Optional[str] = Header(None),
+):
     """
     Fetch a GitHub user's full public profile and all repositories,
     build a multi-repo knowledge graph with per-repo source tagging.
@@ -221,6 +224,27 @@ async def analyze_github_profile(payload: GitHubProfileRequest):
             })
 
         save_graph(all_nodes, all_links)
+
+        # Persist to user profile and graph store if authenticated
+        if authorization and authorization.startswith("Bearer "):
+            try:
+                from jose import jwt
+                tok = authorization.split(" ")[1]
+                p = jwt.decode(tok, settings.jwt_secret, algorithms=["HS256"])
+                uid = p.get("sub") or p.get("username")
+                if uid:
+                    from services import user_service
+                    graph_dict = {"nodes": all_nodes, "links": all_links}
+                    user_service.save_user_graph(uid, graph_dict)
+                    user_service.save_user_profile(uid, {
+                        "github_username": username,
+                        "github_connected": True,
+                        "github_profile": profile_info,
+                        "github_repos": enriched_repos,
+                        "onboarding_completed": True,
+                    })
+            except Exception as e:
+                print(f"Error persisting GitHub analysis to user: {e}")
 
         return {
             "status": "analyzed",

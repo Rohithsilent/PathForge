@@ -42,9 +42,17 @@ async def get_profile(user_payload: Dict[str, Any] = Depends(_extract_user_from_
         }
         user_service.save_user_profile(uid, profile)
 
-    # Aggregate live skills from graph and user data
-    graph = get_graph()
-    nodes = graph.get("nodes", [])
+    # Aggregate live skills from user's personal graph
+    user_graph = user_service.get_user_graph(uid)
+    if not user_graph or not user_graph.get("nodes"):
+        if profile and (profile.get("github_repos") or profile.get("skills")):
+            user_graph = user_service.reconstruct_graph_from_profile(profile)
+            if user_graph and user_graph.get("nodes"):
+                user_service.save_user_graph(uid, user_graph)
+    if not user_graph or not user_graph.get("nodes"):
+        user_graph = get_graph()
+
+    nodes = user_graph.get("nodes", [])
     graph_skills = [n for n in nodes if n.get("category") != "repo"]
 
     # Also incorporate saved linkedin_skills if not in graph
@@ -97,6 +105,7 @@ async def get_profile(user_payload: Dict[str, Any] = Depends(_extract_user_from_
     saved_repos = profile.get("github_repos", [])
     repo_nodes = [n for n in nodes if n.get("category") == "repo"]
     profile["total_repos"] = max(len(saved_repos), len(repo_nodes), profile.get("github_profile", {}).get("public_repos", 0))
+    profile["graph"] = user_graph
 
     return profile
 
@@ -108,5 +117,7 @@ async def update_profile(
 ):
     """Update profile and connected accounts, saving to Firebase and local storage."""
     uid = user_payload.get("sub") or user_payload.get("username")
+    if "graph" in updates and isinstance(updates["graph"], dict):
+        user_service.save_user_graph(uid, updates["graph"])
     saved = user_service.save_user_profile(uid, updates)
     return {"status": "updated", "profile": saved}

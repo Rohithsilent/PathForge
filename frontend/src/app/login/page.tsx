@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { signInWithGoogle, isFirebaseConfigured } from "@/lib/firebase"
 import { authFirebase } from "@/lib/api"
 import { useAuthStore } from "@/stores/authStore"
+import { useGraphStore } from "@/stores/graphStore"
 import { Loader2, AlertCircle, Sparkles, Github, ArrowRight } from "lucide-react"
 
 const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || ""
@@ -28,7 +29,13 @@ export default function LoginPage() {
         const token = localStorage.getItem("token")
         const currentUser = useAuthStore.getState().user
         if (token && currentUser) {
-            if (currentUser.onboarding_completed || currentUser.github_connected || currentUser.linkedin_connected) {
+            if (
+                currentUser.onboarding_completed ||
+                currentUser.github_connected ||
+                currentUser.linkedin_connected ||
+                currentUser.leetcode_connected ||
+                currentUser.resume_connected
+            ) {
                 router.replace("/dashboard")
             } else {
                 router.replace("/setup")
@@ -50,10 +57,13 @@ export default function LoginPage() {
             const { access_token, user } = await authFirebase(idToken)
             localStorage.setItem("token", access_token)
 
+            const fullUser = user as any
             const isReturning = Boolean(
                 user.onboarding_completed ||
                 user.github_connected ||
-                user.linkedin_connected
+                user.linkedin_connected ||
+                fullUser.leetcode_connected ||
+                fullUser.resume_connected
             )
 
             setUser({
@@ -67,9 +77,23 @@ export default function LoginPage() {
                 github_connected: Boolean(user.github_connected),
                 linkedin_connected: Boolean(user.linkedin_connected),
                 linkedin_username: user.linkedin_username || "",
+                leetcode_username: fullUser.leetcode_username || "",
+                leetcode_connected: Boolean(fullUser.leetcode_connected),
+                leetcode_stats: fullUser.leetcode_stats || null,
+                resume_connected: Boolean(fullUser.resume_connected),
+                resume_filename: fullUser.resume_filename || "",
+                resume_skills: fullUser.resume_skills || [],
                 onboarding_completed: isReturning,
             })
             setIsDemo(false)
+
+            if (fullUser.github_profile) {
+                useAuthStore.getState().setGithubProfile(fullUser.github_profile)
+            }
+
+            if (fullUser.graph && fullUser.graph.nodes && fullUser.graph.nodes.length > 0) {
+                useGraphStore.getState().setGraphData(fullUser.graph)
+            }
 
             if (isReturning) {
                 router.push("/dashboard")

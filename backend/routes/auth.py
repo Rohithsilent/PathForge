@@ -21,11 +21,17 @@ def _init_firebase():
     if _firebase_initialized:
         return
     creds_path = settings.firebase_credentials_path
+    service_account_json = getattr(settings, "firebase_service_account_json", "")
     try:
         import firebase_admin
         from firebase_admin import credentials
         if not firebase_admin._apps:
-            if creds_path and os.path.isfile(creds_path):
+            if service_account_json:
+                import json
+                cred_dict = json.loads(service_account_json)
+                cred = credentials.Certificate(cred_dict)
+                firebase_admin.initialize_app(cred)
+            elif creds_path and os.path.isfile(creds_path):
                 cred = credentials.Certificate(creds_path)
                 firebase_admin.initialize_app(cred)
             else:
@@ -129,8 +135,21 @@ async def firebase_login(payload: FirebaseLoginRequest):
         onboarding_done = bool(
             existing_profile.get("onboarding_completed") or
             existing_profile.get("github_connected") or
-            existing_profile.get("linkedin_connected")
+            existing_profile.get("linkedin_connected") or
+            existing_profile.get("leetcode_connected") or
+            existing_profile.get("resume_connected")
         )
+
+        # Restore personal graph if present
+        user_graph = user_service.get_user_graph(uid)
+        if user_graph and user_graph.get("nodes"):
+            try:
+                from services.graph_service import save_graph
+                save_graph(user_graph["nodes"], user_graph.get("links", []))
+            except Exception as e:
+                print(f"Error syncing user graph to active_graph: {e}")
+            existing_profile["graph"] = user_graph
+
         user = {
             **existing_profile,
             "uid": uid,

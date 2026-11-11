@@ -32,6 +32,7 @@ class Settings(BaseSettings):
 
     # Firebase
     firebase_credentials_path: str = ""  # path to serviceAccountKey.json
+    firebase_service_account_json: str = ""  # raw service account JSON string (ideal for Render env var)
     # If empty, Firebase token verification is skipped (dev mode)
 
     class Config:

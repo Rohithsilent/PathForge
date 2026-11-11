@@ -3,16 +3,23 @@ Resume upload and analysis routes.
 Extracts verified skills, experience, and projects from PDF or pasted resume text,
 and merges them into the candidate's knowledge graph.
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File
+from fastapi import APIRouter, HTTPException, UploadFile, File, Header
+from typing import Optional
 from schemas.schemas import ResumeTextRequest
 from services import resume_service
 from services.graph_service import get_graph, save_graph
+from services import user_service
+from jose import jwt
+from config import settings
 
 router = APIRouter(tags=["resume"])
 
 
 @router.post("/upload")
-async def upload_resume(file: UploadFile = File(...)):
+async def upload_resume(
+    file: UploadFile = File(...),
+    authorization: Optional[str] = Header(None),
+):
     """Upload a resume file (.pdf, .txt, .md) to extract skills and merge into the graph."""
     filename = file.filename or "resume.pdf"
     lower_name = filename.lower()
@@ -44,8 +51,19 @@ async def upload_resume(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to extract skills: {e}")
 
+    # Extract user ID if authenticated
+    uid = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            tok = authorization.split(" ")[1]
+            p = jwt.decode(tok, settings.jwt_secret, algorithms=["HS256"])
+            uid = p.get("sub") or p.get("username")
+        except Exception:
+            pass
+
     # Merge into the existing knowledge graph
-    current_graph = get_graph()
+    user_graph = user_service.get_user_graph(uid) if uid else None
+    current_graph = user_graph if (user_graph and user_graph.get("nodes")) else get_graph()
     existing_nodes = current_graph.get("nodes", [])
     existing_links = current_graph.get("links", [])
 
@@ -62,6 +80,15 @@ async def upload_resume(file: UploadFile = File(...)):
     merged_links = list(existing_links) + generated["links"]
 
     save_graph(merged_nodes, merged_links)
+
+    if uid:
+        user_service.save_user_graph(uid, {"nodes": merged_nodes, "links": merged_links})
+        user_service.save_user_profile(uid, {
+            "resume_connected": True,
+            "resume_filename": filename,
+            "resume_skills": resume_data.get("skills", []),
+            "onboarding_completed": True,
+        })
 
     return {
         "status": "merged",
@@ -78,7 +105,10 @@ async def upload_resume(file: UploadFile = File(...)):
 
 
 @router.post("/analyze-text")
-async def analyze_resume_text(payload: ResumeTextRequest):
+async def analyze_resume_text(
+    payload: ResumeTextRequest,
+    authorization: Optional[str] = Header(None),
+):
     """Analyze pasted resume text and merge extracted skills into the knowledge graph."""
     if not payload.resume_text or len(payload.resume_text.strip()) < 25:
         raise HTTPException(
@@ -93,7 +123,18 @@ async def analyze_resume_text(payload: ResumeTextRequest):
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Failed to extract skills: {e}")
 
-    current_graph = get_graph()
+    # Extract user ID if authenticated
+    uid = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            tok = authorization.split(" ")[1]
+            p = jwt.decode(tok, settings.jwt_secret, algorithms=["HS256"])
+            uid = p.get("sub") or p.get("username")
+        except Exception:
+            pass
+
+    user_graph = user_service.get_user_graph(uid) if uid else None
+    current_graph = user_graph if (user_graph and user_graph.get("nodes")) else get_graph()
     existing_nodes = current_graph.get("nodes", [])
     existing_links = current_graph.get("links", [])
 
@@ -110,6 +151,15 @@ async def analyze_resume_text(payload: ResumeTextRequest):
     merged_links = list(existing_links) + generated["links"]
 
     save_graph(merged_nodes, merged_links)
+
+    if uid:
+        user_service.save_user_graph(uid, {"nodes": merged_nodes, "links": merged_links})
+        user_service.save_user_profile(uid, {
+            "resume_connected": True,
+            "resume_filename": filename,
+            "resume_skills": resume_data.get("skills", []),
+            "onboarding_completed": True,
+        })
 
     return {
         "status": "merged",

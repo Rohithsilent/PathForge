@@ -115,6 +115,9 @@ export default function ProfilePage() {
                         onboarding_completed: Boolean(data.onboarding_completed),
                     })
                 }
+                if (data.github_profile) {
+                    useAuthStore.getState().setGithubProfile(data.github_profile)
+                }
             })
             .catch((err) => {
                 console.error("Error fetching user profile:", err)
@@ -254,6 +257,7 @@ export default function ProfilePage() {
                                     <img
                                         src={profileData?.avatar || user?.avatar}
                                         alt={profileData?.name || "User Avatar"}
+                                        referrerPolicy="no-referrer"
                                         className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl object-cover border-2 border-white shadow-md shadow-slate-200"
                                     />
                                 ) : (

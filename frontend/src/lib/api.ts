@@ -77,6 +77,20 @@ export const syncGithubGraph = async (token: string) => {
     return res.data
 }
 
+export const getGraphData = async (isDemo = false) => {
+    if (isDemo) {
+        const res = await api.get('/graph/demo')
+        return res.data
+    }
+    const res = await api.get('/graph/')
+    return res.data
+}
+
+export const getCareerReadiness = async (params: { target_role?: string; provider?: string }) => {
+    const res = await api.get('/career/readiness', { params })
+    return res.data
+}
+
 export const analyzeRepo = async (url: string, provider: string = 'ollama') => {
     const res = await api.post('/graph/analyze-repo', { url, provider })
     return res.data

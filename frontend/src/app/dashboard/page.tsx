@@ -5,6 +5,7 @@ import { useEffect, useState, Suspense } from "react"
 import { useGraphStore } from "@/stores/graphStore"
 import { useSkillStore } from "@/stores/skillStore"
 import { useAuthStore } from "@/stores/authStore"
+import { getUserProfile, getGraphData, getCareerReadiness, updateUserProfile } from "@/lib/api"
 import { CATEGORY_COLORS } from "@/lib/mock-data"
 import Topbar from "@/components/layout/Topbar"
 import DashboardTour from "@/components/layout/DashboardTour"
@@ -67,6 +68,46 @@ function DashboardContent() {
                 target_role: "ML Engineer",
             })
             setTargetRole("ML Engineer")
+        } else {
+            // Rehydrate full authenticated user profile and knowledge graph from backend
+            const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+            if (token) {
+                getUserProfile()
+                    .then((profile) => {
+                        if (!profile) return
+                        setUser({
+                            name: profile.name || user?.name || "Developer",
+                            username: profile.username || profile.uid || user?.username || "user",
+                            email: profile.email || user?.email || "",
+                            avatar: profile.avatar || user?.avatar || "",
+                            target_role: profile.target_role || user?.target_role || "Full Stack Developer",
+                            auth_provider: profile.auth_provider || user?.auth_provider || "google",
+                            github_username: profile.github_username || user?.github_username || "",
+                            github_connected: Boolean(profile.github_connected),
+                            linkedin_connected: Boolean(profile.linkedin_connected),
+                            linkedin_username: profile.linkedin_username || user?.linkedin_username || "",
+                            leetcode_username: profile.leetcode_username || user?.leetcode_username || "",
+                            leetcode_connected: Boolean(profile.leetcode_connected),
+                            leetcode_stats: profile.leetcode_stats || user?.leetcode_stats || null,
+                            resume_connected: Boolean(profile.resume_connected),
+                            resume_filename: profile.resume_filename || user?.resume_filename || "",
+                            resume_skills: profile.resume_skills || user?.resume_skills || [],
+                            onboarding_completed: Boolean(profile.onboarding_completed),
+                        })
+                        if (profile.github_profile) {
+                            useAuthStore.getState().setGithubProfile(profile.github_profile)
+                        }
+                        if (profile.target_role) {
+                            setTargetRole(profile.target_role)
+                        }
+                        if (profile.graph && profile.graph.nodes && profile.graph.nodes.length > 0) {
+                            setGraphData(profile.graph)
+                        }
+                    })
+                    .catch((err) => {
+                        console.warn("Could not rehydrate user profile on dashboard:", err)
+                    })
+            }
         }
 
         // Prevent hydration flash on mobile, close default insights
@@ -80,27 +121,17 @@ function DashboardContent() {
         // Fetch real graph data from backend
         const fetchGraph = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-
-                // Demo mode: seed the backend with demo data first. If seeding
-                // fails, fall through to the normal fetch.
-                if (isDemo) {
-                    try {
-                        await fetch(`${apiUrl}/graph/demo`, { method: 'POST' })
-                    } catch (err) {
-                        console.warn('Could not seed demo graph data:', err)
-                    }
-                }
-
-                const res = await fetch(`${apiUrl}/graph/`)
-                if (!res.ok) {
-                    setBackendDown(true)
-                    return
-                }
-                const data = await res.json()
+                const data = await getGraphData(isDemo)
                 setBackendDown(false)
                 if (data.nodes && data.nodes.length > 0) {
                     setGraphData(data)
+                } else if (!isDemo) {
+                    // Check if store already has a cached graph
+                    const cached = useGraphStore.getState().graphData
+                    if (cached && cached.nodes && cached.nodes.length > 0) {
+                        // Sync cached graph back to backend
+                        updateUserProfile({ graph: cached }).catch(() => {})
+                    }
                 }
             } catch (err) {
                 setBackendDown(true)
@@ -111,13 +142,12 @@ function DashboardContent() {
         // Fetch career readiness + skill gaps
         const fetchCareer = async () => {
             try {
-                const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
-                const params = new URLSearchParams()
-                if (isDemo) params.set("target_role", "ML Engineer")
-                params.set("provider", useGraphStore.getState().analysisEngine)
-                const res = await fetch(`${apiUrl}/career/readiness?${params.toString()}`)
-                if (res.ok) {
-                    const data = await res.json()
+                const role = isDemo ? "ML Engineer" : (useAuthStore.getState().user?.target_role || "Full Stack Developer")
+                const data = await getCareerReadiness({
+                    target_role: role,
+                    provider: useGraphStore.getState().analysisEngine,
+                })
+                if (data) {
                     setCurrentScore(data.career_readiness)
                     setGaps(data.gaps || [])
                 }
@@ -149,6 +179,7 @@ function DashboardContent() {
                             <img
                                 src={githubProfile.avatar}
                                 alt={githubProfile.username}
+                                referrerPolicy="no-referrer"
                                 className="w-7 h-7 rounded-full border border-slate-600 shrink-0"
                             />
                             <div className="flex-1 min-w-0">

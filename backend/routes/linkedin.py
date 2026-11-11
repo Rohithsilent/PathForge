@@ -6,17 +6,24 @@ Since LinkedIn does not support public scraping, we rely on:
 2. AI-powered skill extraction from that text
 3. Merging extracted skills into the knowledge graph with source='linkedin'
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
+from typing import Optional
+from jose import jwt
+from config import settings
 
 from schemas.schemas import LinkedInRequest
 from services import linkedin_service
 from services.graph_service import get_graph, save_graph
+from services import user_service
 
 router = APIRouter(tags=["linkedin"])
 
 
 @router.post("/analyze")
-async def analyze_linkedin_profile(payload: LinkedInRequest):
+async def analyze_linkedin_profile(
+    payload: LinkedInRequest,
+    authorization: Optional[str] = Header(None),
+):
     """
     Extract skills and roles from pasted LinkedIn profile text,
     then merge them into the existing knowledge graph.
@@ -36,8 +43,19 @@ async def analyze_linkedin_profile(payload: LinkedInRequest):
     if extracted.get("error"):
         raise HTTPException(status_code=400, detail=extracted["error"])
 
+    # Extract user ID if authenticated
+    uid = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            tok = authorization.split(" ")[1]
+            p = jwt.decode(tok, settings.jwt_secret, algorithms=["HS256"])
+            uid = p.get("sub") or p.get("username")
+        except Exception:
+            pass
+
     # Build new graph nodes from LinkedIn data
-    current_graph = get_graph()
+    user_graph = user_service.get_user_graph(uid) if uid else None
+    current_graph = user_graph if (user_graph and user_graph.get("nodes")) else get_graph()
     existing_nodes = current_graph.get("nodes", [])
     existing_links = current_graph.get("links", [])
 
@@ -54,6 +72,14 @@ async def analyze_linkedin_profile(payload: LinkedInRequest):
     merged_links = list(existing_links) + linkedin_graph["links"]
 
     save_graph(merged_nodes, merged_links)
+
+    if uid:
+        user_service.save_user_graph(uid, {"nodes": merged_nodes, "links": merged_links})
+        user_service.save_user_profile(uid, {
+            "linkedin_connected": True,
+            "linkedin_skills": extracted.get("skills", []),
+            "onboarding_completed": True,
+        })
 
     return {
         "status": "merged",

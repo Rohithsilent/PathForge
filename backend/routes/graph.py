@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
-from typing import List, Dict, Any
+from fastapi import APIRouter, HTTPException, Header
+from typing import List, Dict, Any, Optional
+from jose import jwt
 
 from schemas.schemas import GitHubSyncRequest, RepoAnalyzeRequest
 from services.graph_service import get_graph, save_graph
@@ -12,27 +13,44 @@ router = APIRouter(tags=["graph"])
 
 
 @router.get("/")
-async def get_graph_data():
-    """Return the full knowledge graph (nodes + links)."""
+async def get_graph_data(authorization: Optional[str] = Header(None)):
+    """Return the full knowledge graph (user-specific if authenticated)."""
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+        try:
+            payload = jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+            uid = payload.get("sub") or payload.get("username")
+            if uid:
+                from services import user_service
+                user_graph = user_service.get_user_graph(uid)
+                if user_graph and user_graph.get("nodes"):
+                    return user_graph
+                # Attempt reconstruction from profile
+                profile = user_service.get_user_profile(uid)
+                if profile and (profile.get("github_repos") or profile.get("skills")):
+                    reconstructed = user_service.reconstruct_graph_from_profile(profile)
+                    if reconstructed and reconstructed.get("nodes"):
+                        user_service.save_user_graph(uid, reconstructed)
+                        return reconstructed
+        except Exception as e:
+            print(f"Error resolving user graph from token: {e}")
+
     graph = get_graph()
     return graph
 
 
+@router.get("/demo")
 @router.post("/demo")
 async def seed_demo_graph():
-    """Populate the graph with the bundled demo dataset.
-
-    Fully replaces the current graph (same semantics as a sync), so repeated
-    calls are idempotent and never duplicate nodes or links. Runs entirely
-    offline — no external API or AI provider calls.
-    """
-    save_graph([dict(node) for node in DEMO_NODES], [dict(link) for link in DEMO_LINKS])
-    graph = get_graph()
-    return {"nodes": graph["nodes"], "links": graph["links"], "seeded": True}
+    """Return the bundled demo dataset for offline exploration without corrupting active user graphs."""
+    return {"nodes": DEMO_NODES, "links": DEMO_LINKS, "seeded": True}
 
 
 @router.post("/sync/github")
-async def sync_github_graph(payload: GitHubSyncRequest):
+async def sync_github_graph(
+    payload: GitHubSyncRequest,
+    authorization: Optional[str] = Header(None)
+):
     """Sync graph with GitHub data — fully replaces old graph."""
     token = (payload.token or "").strip()
     if not token:
@@ -45,6 +63,19 @@ async def sync_github_graph(payload: GitHubSyncRequest):
         data = await sync_github_data(token)
         # Replace entire graph so deleted repos / stale skills are removed
         save_graph(data["nodes"], data["links"])
+
+        # Also persist to user's private store if authenticated
+        if authorization and authorization.startswith("Bearer "):
+            try:
+                tok = authorization.split(" ")[1]
+                p = jwt.decode(tok, settings.jwt_secret, algorithms=["HS256"])
+                uid = p.get("sub") or p.get("username")
+                if uid:
+                    from services import user_service
+                    user_service.save_user_graph(uid, {"nodes": data["nodes"], "links": data["links"]})
+            except Exception:
+                pass
+
         print(f"DEBUG: Sync complete. {len(data['nodes'])} nodes, {len(data['links'])} links.")
         return {
             "status": "synced",
