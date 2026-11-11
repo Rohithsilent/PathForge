@@ -8,7 +8,12 @@ class Settings(BaseSettings):
     openrouter_model: str = "google/gemma-4-26b-a4b-it:free"
     # Comma-separated free models tried in order when the primary is rate-limited
     # or returns no content.
-    openrouter_fallback_models: str = "xingchen-agi/xing4.0-29b-a4b:free,liquid/lfm-2.5-2.6b:free"
+    openrouter_fallback_models: str = (
+        "nvidia/nemotron-3-ultra-550b-a55b:free,"
+        "openrouter/free,"
+        "liquid/lfm-2.5-2.6b:free,"
+        "google/gemma-4-31b-it:free"
+    )
 
     # ── Local inference (Ollama) ──
     ollama_base_url: str = "http://localhost:11434"

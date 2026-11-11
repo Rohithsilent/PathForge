@@ -3,7 +3,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
-import { signInWithGoogle, signInWithGoogleRedirect, getGoogleRedirectResult, onAuthUserChange, isFirebaseConfigured } from "@/lib/firebase"
+import { signInWithGoogle, isFirebaseConfigured } from "@/lib/firebase"
 import { authFirebase } from "@/lib/api"
 import { useAuthStore } from "@/stores/authStore"
 import { Loader2, AlertCircle, Sparkles, Github, ArrowRight } from "lucide-react"
@@ -23,13 +23,31 @@ export default function LoginPage() {
     const [error, setError] = useState("")
     const firebaseAvailable = isFirebaseConfigured()
 
-    const processUserLogin = async (idToken: string) => {
+    // Redirect if already logged in with a valid user profile
+    useEffect(() => {
+        const token = localStorage.getItem("token")
+        const currentUser = useAuthStore.getState().user
+        if (token && currentUser) {
+            if (currentUser.onboarding_completed || currentUser.github_connected || currentUser.linkedin_connected) {
+                router.replace("/dashboard")
+            } else {
+                router.replace("/setup")
+            }
+        }
+    }, [router])
+
+    const handleGoogleLogin = async () => {
+        if (!firebaseAvailable) {
+            setError("Firebase is not configured. Please check your environment variables.")
+            return
+        }
         setLoading("google")
         setError("")
         try {
-            console.log("Exchanging Firebase token with backend...")
+            const result = await signInWithGoogle()
+            const idToken = await result.user.getIdToken()
+
             const { access_token, user } = await authFirebase(idToken)
-            console.log("Backend auth successful:", user.email || user.username)
             localStorage.setItem("token", access_token)
 
             const isReturning = Boolean(
@@ -54,125 +72,23 @@ export default function LoginPage() {
             setIsDemo(false)
 
             if (isReturning) {
-                console.log("Navigating to /dashboard...")
                 router.push("/dashboard")
             } else {
-                console.log("Navigating to /setup...")
                 router.push("/setup")
             }
         } catch (err: any) {
-            console.error("processUserLogin error:", err)
-            const detail = err.response?.data?.detail || err.message || "Server authentication failed"
-            setError(`Login failed: ${detail}`)
-            setLoading(null)
-        }
-    }
-
-    // Process Google redirect result and listen to Firebase auth state
-    useEffect(() => {
-        let isMounted = true
-
-        // 1. Primary listener: catches redirect sign-in as soon as Firebase finishes rehydrating!
-        const unsubscribe = onAuthUserChange(async (firebaseUser) => {
-            if (!isMounted || !firebaseUser) return
-            console.log("Firebase user detected:", firebaseUser.email)
-            try {
-                const idToken = await firebaseUser.getIdToken()
-                await processUserLogin(idToken)
-            } catch (err: any) {
-                console.error("Auto login error:", err)
-                if (isMounted) {
-                    setError(`Sign-in failed: ${err.message || "Failed to authenticate"}`)
-                    setLoading(null)
-                }
-            }
-        })
-
-        // 2. Also process getGoogleRedirectResult if available
-        getGoogleRedirectResult()
-            .then(async (result) => {
-                if (result && isMounted) {
-                    console.log("Redirect result detected:", result.user.email)
-                    const idToken = await result.user.getIdToken()
-                    await processUserLogin(idToken)
-                }
-            })
-            .catch((err: any) => {
-                console.error("Google redirect result error:", err)
-                if (err.code !== "auth/popup-closed-by-user" && isMounted) {
-                    setError(`Google sign-in error: ${err.message || "Failed to complete sign-in"}`)
-                    setLoading(null)
-                }
-            })
-
-        return () => {
-            isMounted = false
-            unsubscribe()
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
-    // Redirect if already logged in with a valid user profile
-    useEffect(() => {
-        const token = localStorage.getItem("token")
-        const currentUser = useAuthStore.getState().user
-        if (token && currentUser) {
-            if (currentUser.onboarding_completed || currentUser.github_connected || currentUser.linkedin_connected) {
-                router.replace("/dashboard")
+            console.error("Google sign-in error:", err)
+            if (err.code === "auth/popup-closed-by-user") {
+                // User closed pop-up dialog — reset smoothly
+            } else if (err.code === "auth/popup-blocked") {
+                setError("Pop-up blocked. Please pause your ad blocker for this site or allow pop-ups.")
+            } else if (err.code === "auth/network-request-failed") {
+                setError("Network error. Please check your connection and try again.")
             } else {
-                router.replace("/setup")
-            }
-        }
-    }, [router])
-
-    const handleGoogleLogin = async () => {
-        if (!firebaseAvailable) {
-            setError("Firebase is not configured. Please add your Firebase environment variables.")
-            return
-        }
-        setLoading("google")
-        setError("")
-        try {
-            const result = await signInWithGoogle()
-            const idToken = await result.user.getIdToken()
-            await processUserLogin(idToken)
-        } catch (err: any) {
-            console.error("Google login failed", err)
-            if (err.code === "auth/popup-blocked") {
-                // Pop-up blocked by browser, ad-blocker, or cross-origin restrictions — smoothly fallback to redirect
-                setError("Pop-up blocked by browser. Redirecting directly to Google sign-in...")
-                try {
-                    await signInWithGoogleRedirect()
-                    return
-                } catch (redirectErr: any) {
-                    setError(`Redirect failed: ${redirectErr.message}`)
-                    setLoading(null)
-                }
-            } else if (err.code === "auth/popup-closed-by-user") {
-                setError("Sign-in cancelled.")
-                setLoading(null)
-            } else if (err.code === "auth/configuration-not-found") {
-                setError("Firebase Authentication is not enabled. Go to Firebase Console → Authentication → Sign-in method → Enable Google.")
-                setLoading(null)
-            } else {
-                const msg = err.response?.data?.detail || err.message || "Unknown error"
+                const msg = err.response?.data?.detail || err.message || "Failed to sign in"
                 setError(`Google sign-in failed: ${msg}`)
-                setLoading(null)
             }
-        }
-    }
-
-    const handleGoogleRedirectLogin = async () => {
-        if (!firebaseAvailable) {
-            setError("Firebase is not configured. Please add your Firebase environment variables.")
-            return
-        }
-        setLoading("google")
-        setError("")
-        try {
-            await signInWithGoogleRedirect()
-        } catch (err: any) {
-            setError(`Redirect error: ${err.message}`)
+        } finally {
             setLoading(null)
         }
     }
@@ -269,18 +185,6 @@ export default function LoginPage() {
                                 )}
                                 <span>Continue with Google</span>
                             </motion.button>
-
-                            {/* Pop-up bypass / Direct redirect option */}
-                            <div className="text-center -mt-1 pb-1">
-                                <button
-                                    type="button"
-                                    onClick={handleGoogleRedirectLogin}
-                                    disabled={!!loading}
-                                    className="text-[11px] text-slate-400 hover:text-orange-600 transition-colors font-medium cursor-pointer"
-                                >
-                                    Pop-up blocked? <span className="underline font-bold text-slate-500 hover:text-orange-600">Sign in with direct redirect &rarr;</span>
-                                </button>
-                            </div>
 
                             {/* Divider */}
                             <div className="flex items-center gap-3 py-1">

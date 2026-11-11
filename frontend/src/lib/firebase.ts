@@ -23,12 +23,8 @@ import {
     getAuth,
     GoogleAuthProvider,
     signInWithPopup,
-    signInWithRedirect,
-    getRedirectResult,
-    onAuthStateChanged,
     signOut,
     Auth,
-    User,
     UserCredential
 } from "firebase/auth"
 
@@ -58,34 +54,9 @@ googleProvider.setCustomParameters({ prompt: "select_account" })
 
 /**
  * Sign in with Google popup. Returns the Firebase UserCredential.
- * The caller should then call getIdToken() and send it to the backend.
  */
 export const signInWithGoogle = async (): Promise<UserCredential> => {
     return signInWithPopup(auth, googleProvider)
-}
-
-/**
- * Sign in with Google full-page redirect.
- * Bypasses all browser pop-up blockers, ad blockers, and third-party cookie restrictions.
- */
-export const signInWithGoogleRedirect = async (): Promise<void> => {
-    return signInWithRedirect(auth, googleProvider)
-}
-
-/**
- * Process the redirect result after returning from Google Sign-In.
- */
-export const getGoogleRedirectResult = async (): Promise<UserCredential | null> => {
-    if (typeof window === "undefined" || !auth) return null
-    return getRedirectResult(auth)
-}
-
-/**
- * Listen for auth state changes (crucial for redirect sign-in).
- */
-export const onAuthUserChange = (callback: (user: User | null) => void) => {
-    if (typeof window === "undefined" || !auth) return () => {}
-    return onAuthStateChanged(auth, callback)
 }
 
 /**
