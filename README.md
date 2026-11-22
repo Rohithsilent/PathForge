@@ -1,287 +1,194 @@
-# PathForge — Interactive 3D Knowledge Graph & Career Intelligence Platform
+# PathForge
 
-> **AI-powered Career Intelligence Platform** that transforms GitHub repositories, LinkedIn profiles, and certifications into verified developer skills, interactive 3D knowledge graphs, quantified hiring readiness scores, and AI career coaching.
+**Turn a developer's GitHub, LeetCode, résumé and LinkedIn into a verified skill graph, a 0–100 job-readiness score, and an AI career coach.**
 
-![License](https://img.shields.io/badge/License-MIT-blue.svg)
-![Frontend](https://img.shields.io/badge/Next.js-14.2-black.svg)
-![Backend](https://img.shields.io/badge/FastAPI-1.0-teal.svg)
-![3D Engine](https://img.shields.io/badge/Three.js-R3F-orange.svg)
-![Cost](https://img.shields.io/badge/Cost-$0-brightgreen.svg)
-![Status](https://img.shields.io/badge/Status-Production_Ready-brightgreen.svg)
+**[▶ Live demo](https://pathforge-topaz.vercel.app)** · [Quick start](#-quick-start) · [Architecture](#-architecture) · [API](#-api-reference)
 
----
+![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)
+![FastAPI](https://img.shields.io/badge/FastAPI-Python_3.10+-009688?logo=fastapi&logoColor=white)
+![Three.js](https://img.shields.io/badge/Three.js-React_Three_Fiber-black?logo=three.js)
+![LLMs](https://img.shields.io/badge/LLMs-OpenRouter_%7C_Ollama-6f42c1)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-## ✨ Key Features
-
-### 🔮 1. Interactive 3D Knowledge Graph
-- **Physics-Driven 3D Simulation**: Force-directed 3D graph powered by Three.js, React Three Fiber (`@react-three/fiber`), and `d3-force-3d`.
-- **Dynamic Node Badges & Icons**: Real SVG brand icons (React, TypeScript, Python, Docker, Flutter, etc.) and maturity badges for every skill.
-- **Node Selection & Subgraph Isolation**: Selecting any node automatically isolates only that node and its directly connected neighbors and links, decluttering large graphs for maximum clarity.
-- **Connected Link Highlighting**: Links connected to the active node illuminate in vibrant brand orange with legible relationship labels.
-- **Floating Focused Node Bar**: Includes a 1-click **"Show All"** reset button and category indicators.
-- **2D WebGL Fallback View**: Graceful degradation to an interactive 2D node map if hardware WebGL acceleration is unavailable in the browser environment.
-- **Market Demand Overlay**: Visualizes real-time tech market demand percentage with high/medium/low color-coded glowing pulses.
-
-### 📱 2. Mobile-First Responsive Design
-- **Collapsible Sources & Repositories Panel**: Filters panel automatically minimizes on mobile viewports (`<768px`) to prevent crowding the canvas and yield **90%+ vertical space** to the 3D graph.
-- **Smooth Animations**: Animated expand/collapse powered by Framer Motion.
-- **Scrollable Repository Filters**: Repo list height is smartly constrained so large repository collections never overflow the viewport.
-
-### ⚡ 3. Deep Multi-Signal Repository Analysis
-- **Multi-Signal Scanning**:
-  - **Language Detection**: Reads all languages detected by GitHub API (`WRITTEN_IN` links).
-  - **Tech Directory Deep Scans**: Analyzes README files, repo topics, and descriptions against a comprehensive tech directory (`Flutter`, `Firebase`, `Docker`, `HTTPS`, `Authentication`, `Real-time`, `Web Scraping`, etc.) creating `USES` links.
-  - **Concept & Tag Extraction**: Links related software engineering concepts, paradigms, and libraries.
-- **Multi-Repo Association**: Skills appearing across multiple repositories are accurately linked with `repos: [repo_names]` array tags.
-- **Persistent Graph Caching**: Analyzed graphs persist in `backend/data/active_graph.json` and sync seamlessly across reloads.
-
-### 🔐 4. Multi-Provider Authentication & Smart Onboarding
-- **Firebase Google Authentication**: Fast, secure 1-click Google Sign-In via Firebase Auth.
-- **GitHub OAuth Integration**: Connect your GitHub account to automatically pull public repositories for instant skill graph generation.
-- **LeetCode Integration**: Query public LeetCode GraphQL statistics (Easy/Medium/Hard problem counts, global ranking, algorithmic topic tags, languages) and verify DSA competence.
-- **Resume Parsing & Ingestion**: Drag-and-drop PDF resume upload (or plaintext paste) with automatic AI skill extraction, work experience detection, and project mapping.
-- **LinkedIn Integration**: Connect and ingest LinkedIn profile data to surface verified certifications, work history, and endorsements.
-- **Smart Onboarding Flow**:
-  - The `/setup` onboarding flow provides an interactive 4-step wizard: **GitHub** &rarr; **LeetCode** &rarr; **Resume** &rarr; **LinkedIn**.
-  - Returning users who have already onboarded are automatically routed directly to their personalized `/dashboard`.
-- **User Profile Persistence**: User settings and connected account statuses are stored securely in `backend/data/users/`.
-
-### 👤 5. Public Sharable Profiles & Social Proof
-- **Dedicated Profile Page (`/profile`)**: Manage connected accounts (Google, GitHub, LinkedIn), update target roles, and view profile health.
-- **Sharable Public URL (`/profile/[slug]`)**: Share your verified developer graph and readiness card with recruiters and peers.
-- **1-Click LinkedIn Sharing**: Post your verified skill portfolio directly to LinkedIn with pre-composed hiring highlights.
-
-### 📊 6. AI Career Readiness & Skill Gap Analysis
-- **0–100 Readiness Benchmark**: Quantified career readiness score tailored to target roles (e.g. *Full Stack Developer*, *ML Engineer*, *DevOps Specialist*).
-- **Prioritized Gap Breakdown**: Highlights missing critical skills and frameworks required for your dream job with actionable next steps.
-
-### 🤖 7. AI Career Copilot & What-If Simulator
-- **Interactive Copilot Chat**: Career assistant powered by open-weight LLMs (Ollama or OpenRouter) with direct context of your scanned GitHub repositories.
-- **What-If Simulator**: Predicts the exact score boost and career impact before you learn a new framework or tool (*e.g. "Learning PyTorch will raise your ML Readiness score by +16%"*).
-
-### 👔 8. Recruiter Intelligence & Analytics
-- **Recruiter Evaluation Mode**: Generates a high-level candidate scorecard, strengths assessment, and radar chart.
-- **Exportable PDF Report**: Generate clean candidate summaries formatted for technical hiring managers.
-- **Analytics Dashboard (`/dashboard/analytics`)**: Visualizes category breakdowns, language distributions, and maturity metrics across charts.
+<!-- TODO: add a GIF or screenshot of the 3D graph here, e.g. docs/demo.gif -->
 
 ---
 
-## 🏗️ Tech Stack
+## 💡 The problem
 
-| Layer | Technology | Details |
-|---|---|---|
-| **Frontend Framework** | Next.js 14.2 (App Router) | React 18, TypeScript, Tailwind CSS |
-| **3D Graph Engine** | React Three Fiber + Three.js | `@react-three/fiber`, `@react-three/drei`, `d3-force-3d` |
-| **State Management** | Zustand | Persistent client stores for graph, auth, and skills |
-| **Animations** | Framer Motion | Smooth drawer, modal, and filter animations |
-| **Authentication** | Firebase Auth + GitHub OAuth | Google Sign-In, GitHub OAuth token exchange, JWT |
-| **Charts** | Recharts | Radar, area, bar, and pie charts |
-| **Backend Framework** | FastAPI (Python 3.10+) | Uvicorn, Pydantic v2, CORS middleware |
-| **AI Inference** | Open-Weight Models | Gemma 4, Qwen2.5, Nemotron via OpenRouter or local Ollama |
-| **Data Persistence** | JSON Datastore & Neo4j | `backend/data/` for users & graphs, optional Neo4j AuraDB |
+Every résumé says "React, Python, Docker". Nothing proves it, and recruiters see the same claims from every applicant.
 
-**Total Infrastructure Cost: $0 (Runs entirely on free and open-source tiers)**
+PathForge reads what a developer has **actually built** and turns that evidence into skills a recruiter can trust:
+
+1. **Scan**: pull public repos, LeetCode stats, a résumé PDF and LinkedIn data.
+2. **Verify**: detect languages, frameworks and concepts from code, READMEs and topics, and link every skill to the repos that prove it.
+3. **Visualise**: render the result as an interactive 3D knowledge graph.
+4. **Score**: compute a 0–100 readiness score for a target role (ML Engineer, Full Stack, DevOps…) with a prioritised skill-gap list.
+5. **Coach**: chat with an AI copilot that knows your repos, and run "what if I learn X?" simulations.
 
 ---
 
-## 📁 Project Structure
+## ✨ Highlights
+
+| Feature | What it does |
+|---|---|
+| **3D knowledge graph** | Force-directed graph (Three.js, React Three Fiber, `d3-force-3d`) with brand icons, click-to-isolate subgraphs, market-demand glow and a 2D WebGL fallback |
+| **Multi-signal repo analysis** | Combines GitHub language data, README/topic scanning against a curated tech directory, and concept extraction; skills seen in several repos are linked to all of them |
+| **Multi-source ingestion** | GitHub OAuth, LeetCode GraphQL stats, AI résumé parsing (PDF or text), LinkedIn import, guided 4-step onboarding |
+| **Readiness & gap analysis** | Role-specific 0–100 score with prioritised missing skills and a roadmap |
+| **AI career copilot** | Chat grounded in your scanned repos, plus a What-If simulator ("PyTorch → +16% ML readiness") |
+| **Recruiter mode** | Candidate scorecard, radar chart, analytics dashboard and PDF export |
+| **Shareable profiles** | Public `/profile/[slug]` page with one-click LinkedIn sharing |
+| **Zero-cost AI** | Open-weight models via OpenRouter (Gemma, Nemotron) or fully offline via Ollama (Qwen2.5), with a deterministic fallback when providers are rate-limited |
+
+---
+
+## 🏗 Architecture
+
+```mermaid
+flowchart LR
+    U[User] --> FE[Next.js 14 frontend<br/>R3F 3D graph · Zustand · Recharts]
+    FE -->|REST| BE[FastAPI backend]
+    BE --> GH[GitHub API]
+    BE --> LC[LeetCode GraphQL]
+    BE --> RS[Résumé parser]
+    BE --> LI[LinkedIn ingest]
+    BE --> AN[Repo analyzer<br/>+ tech directory]
+    AN --> GS[Graph service<br/>JSON store / Neo4j AuraDB]
+    BE --> SC[Scoring service<br/>readiness · gaps · what-if]
+    BE --> LLM[LLM gateway<br/>OpenRouter · Ollama · fallback]
+    FE --> FB[Firebase Auth]
+```
+
+| Layer | Stack |
+|---|---|
+| Frontend | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Framer Motion, Zustand, Recharts |
+| 3D | Three.js, `@react-three/fiber`, `@react-three/drei`, `d3-force-3d` |
+| Backend | FastAPI, Pydantic v2, Uvicorn |
+| AI | Gemma / Nemotron via OpenRouter, Qwen2.5 via Ollama, heuristic fallback |
+| Auth | Firebase (Google sign-in), GitHub OAuth, JWT |
+| Data | JSON datastore, optional Neo4j AuraDB |
+| Deploy | Docker Compose, Vercel |
+
+<details>
+<summary><b>Project structure</b></summary>
 
 ```
 PathForge/
 ├── backend/
-│   ├── main.py                  # FastAPI entry point & router registration
-│   ├── config.py                # Environment configuration (Pydantic settings)
-│   ├── seed_data.py             # Demo dataset fallback
-│   ├── data/                    # Persistent local storage
-│   │   ├── active_graph.json    # Active analyzed knowledge graph cache
-│   │   └── users/               # User profiles (JSON store)
-│   ├── routes/                  # API endpoints
-│   │   ├── auth.py              # Firebase & GitHub authentication routes
-│   │   ├── user.py              # User profile & onboarding status
-│   │   ├── profile.py           # Public sharable profile routes
-│   │   ├── github.py            # Repo & profile analysis pipeline
-│   │   ├── linkedin.py          # LinkedIn profile ingestion
-│   │   ├── graph.py             # Active & demo graph endpoints
-│   │   ├── career.py            # Readiness scores & gap analysis
-│   │   ├── recruiter.py         # Recruiter summaries & candidate evaluation
-│   │   ├── chat.py              # AI Copilot chat streaming
-│   │   ├── notion.py            # Notion integration (optional)
-│   │   └── certifications.py    # Certification tracking
-│   ├── services/                # Core business logic
-│   │   ├── github_service.py    # GitHub API integration & repo fetching
-│   │   ├── repo_analyzer.py     # Multi-signal code & README deep analyzer
-│   │   ├── tech_directory.py    # Comprehensive tech catalog & detection rules
-│   │   ├── user_service.py      # User profile CRUD & persistence
-│   │   ├── graph_service.py     # Graph store & persistence logic
-│   │   ├── scoring_service.py   # Career readiness algorithm
-│   │   ├── ai_service.py        # AI skill extraction & reasoning
-│   │   ├── llm_service.py       # LLM provider gateway (Ollama / OpenRouter)
-│   │   └── linkedin_service.py  # LinkedIn parsing logic
-│   └── schemas/
-│       └── schemas.py           # Pydantic request/response models
-├── frontend/
-│   ├── src/
-│   │   ├── app/                 # Next.js App Router pages
-│   │   │   ├── page.tsx         # Modern SaaS landing page & single-repo analyzer
-│   │   │   ├── login/           # Google & GitHub sign-in page
-│   │   │   ├── setup/           # New user onboarding & target role selector
-│   │   │   ├── profile/         # User account & connected services dashboard
-│   │   │   │   └── [slug]/      # Public shareable profile page
-│   │   │   ├── dashboard/       # Main 3D knowledge graph workspace
-│   │   │   │   └── analytics/   # Analytics & chart breakdowns
-│   │   │   └── auth/callback/   # GitHub OAuth redirect handler
-│   │   ├── components/
-│   │   │   ├── graph/           # 3D Knowledge graph, filters & search
-│   │   │   │   ├── KnowledgeGraph3D.tsx # R3F Canvas & force simulation
-│   │   │   │   └── GraphFilters.tsx     # Responsive collapsible filter panel
-│   │   │   ├── panels/          # Copilot, Insight, Recruiter & Roadmap drawers
-│   │   │   └── layout/          # Topbar, Navigation, Modals
-│   │   ├── stores/              # Zustand state stores (graph, auth, skill)
-│   │   └── lib/                 # API client, Firebase config, tech metadata
-│   └── package.json
-├── .env.example                 # Global environment configuration template
-├── docker-compose.yml           # Container orchestration
-└── README.md
+│   ├── main.py            # FastAPI entry point
+│   ├── routes/            # auth, github, leetcode, resume, linkedin, graph,
+│   │                      # career, chat, recruiter, profile, certifications
+│   ├── services/          # repo_analyzer, tech_directory, scoring_service,
+│   │                      # llm_service, graph_service, resume_service, …
+│   └── schemas/           # Pydantic models
+├── frontend/src/
+│   ├── app/               # landing, login, setup, dashboard, analytics, profile/[slug]
+│   ├── components/graph/  # KnowledgeGraph3D.tsx, GraphFilters.tsx
+│   ├── components/panels/ # Copilot, Insight, Recruiter, Roadmap drawers
+│   └── stores/            # Zustand stores
+├── docker-compose.yml
+└── .env.example
 ```
+</details>
 
 ---
 
-## 🚀 Quick Start Guide
+## 🚀 Quick start
 
-### Prerequisites
-- **Node.js** 18+ and **npm**
-- **Python** 3.10+
-- *(Optional)* [Ollama](https://ollama.com/) for 100% offline local AI inference
-
----
-
-### 1. Backend Setup
+**With Docker**
 
 ```bash
+cp .env.example .env        # add OPENROUTER_API_KEY, or set AI_PROVIDER=ollama
+docker compose up --build
+```
+
+Frontend at `http://localhost:3000`, API at `http://localhost:8000` (health check: `/health`).
+
+<details>
+<summary><b>Without Docker</b></summary>
+
+```bash
+# Backend
 cd backend
-
-# Create and activate virtual environment
-python3 -m venv .venv
-source .venv/bin/activate       # On Windows: .venv\Scripts\activate
-
-# Install dependencies
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-# Configure environment variables
 cp ../.env.example .env
-
-# Start FastAPI server
 uvicorn main:app --reload --port 8000
-```
 
-The backend will be live at `http://localhost:8000`. Test the health check at `http://localhost:8000/health`.
-
----
-
-### 2. Frontend Setup
-
-```bash
+# Frontend (new terminal)
 cd frontend
-
-# Install dependencies
 npm install
-
-# Configure local environment variables
 cp ../.env.example .env.local
-
-# Start Next.js development server
 npm run dev
 ```
+</details>
 
-Open `http://localhost:3000` in your browser.
+<details>
+<summary><b>Firebase, GitHub OAuth and AI provider setup</b></summary>
 
----
+**Firebase Google sign-in**
+1. Create a project in the [Firebase Console](https://console.firebase.google.com/) and enable Google as a sign-in provider.
+2. Register a web app and copy its config into `frontend/.env.local` (`NEXT_PUBLIC_FIREBASE_API_KEY`, `_AUTH_DOMAIN`, `_PROJECT_ID`, `_STORAGE_BUCKET`, `_MESSAGING_SENDER_ID`, `_APP_ID`).
+3. Generate a service-account key and save it as `backend/serviceAccountKey.json`.
 
-## 🔑 Authentication & API Configuration
+**GitHub OAuth (optional)**
+Create an OAuth app with callback `http://localhost:3000/auth/callback`, then set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in `backend/.env`.
 
-### Firebase Google Sign-In Setup
-1. Create a project in the [Firebase Console](https://console.firebase.google.com/).
-2. Enable **Authentication** and add **Google** as a Sign-in provider.
-3. In **Project Settings** > **General**, register a Web App and copy the config values into `frontend/.env.local`:
-   ```env
-   NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
-   NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-   NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-   NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
-   NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-   ```
-4. In **Project Settings** > **Service Accounts**, click **Generate new private key** and save the file as `backend/serviceAccountKey.json`.
+**AI provider** (`AI_PROVIDER` in `backend/.env`)
 
-### GitHub OAuth Setup (Optional)
-1. Go to **GitHub Settings** > **Developer Settings** > **OAuth Apps** > **New OAuth App**.
-2. Set Authorization callback URL to: `http://localhost:3000/auth/callback`.
-3. Add your `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` to `backend/.env`.
-
----
-
-## 🧠 AI Inference Options
-
-PathForge is built exclusively on **open-weight models**, ensuring you never have to pay for expensive proprietary LLM tokens.
-
-Configure your provider via `AI_PROVIDER` in `backend/.env`:
-
-| Mode | Provider Setting | Notes |
+| Mode | Setting | Notes |
 |---|---|---|
-| **Hosted Open-Weight (Default)** | `AI_PROVIDER=openrouter` | Uses free open-weight models (`google/gemma-4-26b-a4b-it:free`, `nvidia/nemotron-3-super-120b-a12b:free`) via OpenRouter. |
-| **Local Offline Inference** | `AI_PROVIDER=ollama` | 100% private. Run `ollama run qwen2.5:7b-instruct` on your machine. |
-| **Deterministic Fallback** | Automatic | If AI providers are offline or rate-limited, local pattern-matching heuristic engines ensure full zero-downtime operation. |
+| Hosted open-weight (default) | `openrouter` | Free models such as `google/gemma-4-26b-a4b-it:free` |
+| Fully offline | `ollama` | `ollama run qwen2.5:7b-instruct` |
+| Fallback | automatic | Heuristic engine keeps the app working if providers are down |
+</details>
 
 ---
 
-## 🔌 API Reference
+## 🔌 API reference
+
+<details>
+<summary><b>Endpoints</b></summary>
 
 | Endpoint | Method | Description |
 |---|---|---|
-| `/auth/firebase` | `POST` | Authenticates Firebase Google user and syncs profile |
-| `/auth/github/login` | `GET` | Initiates GitHub OAuth authentication flow |
-| `/auth/github/callback` | `GET` | Exchanges GitHub OAuth code for user access token |
-| `/user/me` | `GET` | Retrieves authenticated user profile & connected accounts |
-| `/user/onboarding` | `POST` | Completes initial target role onboarding flow |
-| `/user/account` | `DELETE` | Deletes user profile and resets stored credentials |
-| `/profile/{username}` | `GET` | Public developer profile summary & verified skill badges |
-| `/github/analyze-profile` | `POST` | Multi-repo deep scan and skill extraction |
-| `/github/analyze` | `POST` | Single-repo analysis directly from landing page |
-| `/leetcode/analyze` | `POST` | Fetches LeetCode stats, tags, languages & maps algorithmic concepts |
-| `/resume/upload` | `POST` | Extracts skills, experience & projects from uploaded PDF/text resume |
-| `/resume/analyze-text` | `POST` | Extracts skills and projects from pasted resume text |
-| `/linkedin/ingest` | `POST` | Ingests LinkedIn profile information and endorsements |
-| `/graph/` | `GET` | Retrieves active 3D knowledge graph nodes & links |
-| `/graph/demo` | `POST` | Seeds demo graph dataset for instant testing |
-| `/career/readiness` | `GET` | Calculates target role readiness score (0-100) and gaps |
-| `/career/simulate` | `POST` | What-If simulator: estimates score boost for added skills |
-| `/chat/` | `POST` | AI Career Copilot interactive advice |
-| `/recruiter/summary` | `GET` | Recruiter-friendly scorecard and skill radar metrics |
+| `/auth/firebase` | POST | Authenticate a Firebase Google user |
+| `/auth/github/login` · `/auth/github/callback` | GET | GitHub OAuth flow |
+| `/user/me` | GET | Current user and connected accounts |
+| `/user/onboarding` | POST | Complete target-role onboarding |
+| `/profile/{username}` | GET | Public profile and verified skills |
+| `/github/analyze-profile` | POST | Multi-repo scan and skill extraction |
+| `/github/analyze` | POST | Single-repo analysis |
+| `/leetcode/analyze` | POST | LeetCode stats and topic mapping |
+| `/resume/upload` · `/resume/analyze-text` | POST | Résumé skill extraction |
+| `/linkedin/ingest` | POST | LinkedIn profile import |
+| `/graph/` | GET | Active knowledge graph |
+| `/career/readiness` | GET | Readiness score and gaps |
+| `/career/simulate` | POST | What-If simulator |
+| `/chat/` | POST | AI career copilot |
+| `/recruiter/summary` | GET | Recruiter scorecard |
+</details>
 
 ---
 
-## 🎯 PS9 Requirements Coverage
+## 🗺 Roadmap
 
-| Requirement | Implementation Details | Status |
-|---|---|:---:|
-| **GitHub Data Extraction** | Live repo fetching, commit history, language breakdown, and deep file scanning | ✅ |
-| **Multi-Source Integration** | GitHub repositories, LeetCode algorithmic stats, Resume PDF parsing, and LinkedIn profiles | ✅ |
-| **NLP Skill Extraction** | Open-weight LLMs + deep AST & keyword pattern-matching | ✅ |
-| **Graph Database** | Interactive graph model with in-memory persistence and Neo4j AuraDB support | ✅ |
-| **Interactive 3D Visualization** | React Three Fiber, Three.js, d3-force-3d, camera controls & dynamic sprites | ✅ |
-| **Node Focus & Subgraph Isolation** | Clicking a node isolates only connected neighbors and links | ✅ |
-| **Responsive Mobile Layout** | Collapsible filter panel optimizing viewport space for mobile 3D visualization | ✅ |
-| **Search & Real-time Filter** | Instant text search, category filters, and source pills | ✅ |
-| **Skill Gap Analysis** | Compares scanned skills against industry role benchmarks | ✅ |
-| **Career Roadmap** | Step-by-step milestones to close identified technical gaps | ✅ |
-| **What-If Simulator** | Dynamic recalculation of career readiness score when learning new skills | ✅ |
-| **Recruiter Mode** | Radar skill analysis, hiring manager scorecard, and PDF export | ✅ |
-| **Market Demand Overlay** | High/medium/low market demand color intensity and glowing pulses | ✅ |
-| **User Authentication** | Firebase Google Sign-In, GitHub OAuth, and session tokens | ✅ |
-| **Public Developer Profiles** | Shareable `/profile/[slug]` route with direct 1-click LinkedIn post sharing | ✅ |
+- [ ] Demo GIF and screenshots in this README
+- [ ] Deeper code-level (AST) skill evidence
+- [ ] Downloadable "Verified Skill Report" for recruiters
 
 ---
+
+## 👤 Author
+
+**Rohith Pullola**, B.Tech AI & ML, CMR College of Engineering and Technology, Hyderabad (2027)
+
+[Portfolio](https://rohithpullola.me) · [GitHub](https://github.com/Rohithsilent)
+
+Open to AI / software engineering internships.
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE).
+[MIT](LICENSE)
